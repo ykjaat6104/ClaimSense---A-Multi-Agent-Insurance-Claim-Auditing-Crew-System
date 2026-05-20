@@ -1,0 +1,13 @@
+INVOICE — Premium Auto Repairs Pvt Ltd
+Invoice No: INV-2026-4412
+Date: 2026-01-12
+Vehicle: MH-02-AB-1234
+
+Line items:
+- Rear bumper assembly replacement: INR 18,000
+- Tail lamp (OEM): INR 6,500
+- Labour & paint: INR 14,000
+- Alignment & consumables: INR 6,500
+
+Total: INR 45,000 (GST included)
+Payment terms: Due on receipt

@@ -1,0 +1,15 @@
+AUTO INSURANCE CLAIM FORM
+Claim ID: CLM-DEMO-1001
+Policy Number: POL-778899
+Named Insured: Jane Doe
+
+Incident date: 2026-01-10
+Location: Mumbai, Western Express Highway
+Description: Vehicle collision — rear-end damage while stationary at signal.
+Damage: Rear bumper, tail lamp assembly, boot lid deformation.
+Police report: FIR-2026-88 filed same day.
+
+Claimed amount (repair estimate attached): INR 45,000
+Requested coverage: Own damage / collision
+
+Documents attached: repair estimate, photos (not included in this text sample).

@@ -1,0 +1,17 @@
+PRIVATE CAR PACKAGE POLICY — POL-778899
+Effective: 2025-04-01  Expiry: 2026-03-31
+Insured: Jane Doe
+
+SECTION A — OWN DAMAGE
+Covers accidental loss or damage to the insured vehicle including collision, overturning, fire, theft, and natural perils, subject to exclusions.
+
+DEDUCTIBLE: INR 5,000 each and every claim for own damage.
+
+LIMIT OF LIABILITY: Liability for own damage shall not exceed the IDV stated in the schedule (here: INR 6,50,000).
+
+EXCLUSIONS (summary): wear and tear; mechanical breakdown; racing; driving under influence; war; nuclear risks.
+
+CLAIM PROCEDURE: Immediate intimation; survey; cashless or reimbursement per network rules.
+
+SECTION B — THIRD PARTY LIABILITY
+As per Motor Vehicles Act where applicable.
