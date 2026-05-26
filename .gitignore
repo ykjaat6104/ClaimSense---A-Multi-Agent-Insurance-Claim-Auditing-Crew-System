@@ -1,9 +1,12 @@
 # ============================================================================
 # Environment & Configuration
 # ============================================================================
-.env                           # Local environment variables (NEVER commit)
-.env.local
-.env.*.local
+/.env                          # Local environment variables (NEVER commit)
+/.env.local
+/.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
 
 # ============================================================================
 # Python Virtual Environments
@@ -13,6 +16,7 @@ venv/
 ENV/
 env/
 __pycache__/
+**/__pycache__/
 
 # ============================================================================
 # Python Cache & Build Files
@@ -56,13 +60,18 @@ Thumbs.db
 # ============================================================================
 # Project-Specific (Runtime Generated Files)
 # ============================================================================
-uploads/                       # User uploaded files (generated)
-reports/                       # Generated PDF reports
-claimsense.db                  # SQLite database (development)
+uploads/
+reports/
+claimsense.db
 claimsense.db-journal
+claimsense.db-wal
+claimsense.db-shm
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
 
 # ============================================================================
 # Web/Frontend Build
@@ -70,6 +79,7 @@ claimsense.db-journal
 web/node_modules/
 web/dist/
 web/build/
+web/.vite/
 web/*.tsbuildinfo
 
 # ============================================================================
@@ -115,4 +125,8 @@ local.properties
 *.orig
 .env.bak
 celerybeat-schedule
+.ruff_cache/
+.nox/
+.cache/
+.ipynb_checkpoints/
 
