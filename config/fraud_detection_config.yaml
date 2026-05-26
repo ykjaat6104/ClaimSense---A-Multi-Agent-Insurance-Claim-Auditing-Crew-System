@@ -1,0 +1,133 @@
+# Fraud Detection Configuration
+# Customize thresholds, weights, and enabled signals for fraud detection
+
+fraud_detection:
+  # Global settings
+  enabled: true
+  log_level: INFO
+  
+  # Signal thresholds and weights
+  signals:
+    # Invoice discrepancy detection
+    invoice_discrepancy:
+      enabled: true
+      threshold: 0.15        # 15% discrepancy
+      weight: 2.0            # Higher weight - strong indicator
+      description: "Difference between claimed and invoice amounts"
+    
+    # Market price inflation detection
+    market_price_inflation:
+      enabled: true
+      threshold: 1.5         # 1.5x multiplier
+      weight: 2.5            # Highest weight - very suspicious
+      description: "Claimed amount vs market average price"
+    
+    # Vendor/repair shop issues
+    vendor_issues:
+      enabled: true
+      threshold: 3           # 3 or more issues
+      weight: 1.5
+      description: "Number of reported issues with repair vendor"
+    
+    # Regional cost anomaly
+    regional_anomaly:
+      enabled: true
+      threshold: 2.0         # 2 std dev
+      weight: 1.8
+      description: "Deviation from regional average repair costs"
+    
+    # Suspicious timing (claim near renewal)
+    timing_suspicion:
+      enabled: true
+      threshold: 14          # days to renewal
+      weight: 1.2
+      description: "Claim submitted near policy renewal/start date"
+    
+    # High claim frequency
+    claim_frequency:
+      enabled: true
+      threshold: 3           # 3+ claims per year
+      weight: 1.5
+      description: "Unusually high number of claims in short period"
+    
+    # Claim linkage (fraud rings)
+    claim_linkage:
+      enabled: true
+      threshold: 0.8         # similarity score
+      weight: 2.0
+      description: "Multiple similar claims (possible fraud ring)"
+    
+    # Temporal anomalies
+    temporal_anomaly:
+      enabled: true
+      threshold: 2.0         # 2 std dev
+      weight: 1.8
+      description: "Unusual timing patterns in claim submission"
+    
+    # Repair cost inflation over time
+    repair_cost_inflation:
+      enabled: true
+      threshold: 1.3         # 30% inflation
+      weight: 1.5
+      description: "Repair costs inflating faster than market"
+    
+    # Adjuster approval patterns
+    adjuster_pattern:
+      enabled: true
+      threshold: 0.9         # >90% approval rate
+      weight: 1.2
+      description: "Adjuster with suspiciously high approval rate"
+  
+  # Risk scoring configuration
+  risk_scoring:
+    # Score thresholds for verdicts
+    approved_threshold: 30         # Risk score < 30 = APPROVED
+    review_threshold: 50           # 30-50 = APPROVED, 50-75 = REVIEW, >75 = DENIED
+    denied_threshold: 75           # Risk score >= 75 = DENIED
+    
+    # Probability thresholds
+    fraud_probability_review: 0.50  # Fraud prob >= 50% triggers review
+    fraud_probability_deny: 0.75    # Fraud prob >= 75% triggers denial
+    
+    # Claim amount adjustments
+    high_claim_multiplier: 1.2     # Increase risk score for claims > 2x avg
+    low_history_multiplier: 1.1    # Increase risk for customers with <3 claims
+  
+  # ML model configuration
+  ml_models:
+    isolation_forest:
+      enabled: true
+      contamination: 0.1           # Expected % of anomalies
+      n_estimators: 100
+      random_state: 42
+    
+    one_class_svm:
+      enabled: true
+      kernel: "rbf"
+      gamma: "auto"
+      nu: 0.1                       # Upper bound on fraction of anomalies
+  
+  # Performance tuning
+  performance:
+    cache_historical_data: true    # Cache user's historical claims
+    cache_ttl: 3600                # Cache TTL in seconds (1 hour)
+    parallel_processing: true      # Process multiple checks in parallel
+    batch_size: 100                # Batch size for bulk operations
+  
+  # Logging & monitoring
+  monitoring:
+    log_signals: true              # Log all detected signals
+    log_high_risk_claims: true     # Log claims with risk score > 70
+    track_metrics: true            # Track fraud detection metrics
+    metrics_endpoint: "/metrics"
+
+# Override defaults by uncommenting and modifying below:
+# Example custom configuration for higher sensitivity:
+# fraud_detection:
+#   signals:
+#     invoice_discrepancy:
+#       threshold: 0.10            # More strict: 10% instead of 15%
+#       weight: 2.5                # Higher weight
+#     market_price_inflation:
+#       threshold: 1.3             # More strict: 1.3x instead of 1.5x
+#       weight: 3.0                # Highest weight

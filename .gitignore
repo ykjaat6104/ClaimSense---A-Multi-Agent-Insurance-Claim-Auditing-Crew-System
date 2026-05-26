@@ -1,17 +1,118 @@
-.env
+# ============================================================================
+# Environment & Configuration
+# ============================================================================
+.env                           # Local environment variables (NEVER commit)
+.env.local
+.env.*.local
+
+# ============================================================================
+# Python Virtual Environments
+# ============================================================================
 .venv/
 venv/
+ENV/
+env/
 __pycache__/
-*.py[cod]
-.pytest_cache/
-.mypy_cache/
-uploads/
-reports/
-web/node_modules/
-web/dist/
+
+# ============================================================================
+# Python Cache & Build Files
+# ============================================================================
+*.py[cod]                      # Python bytecode
+*.so                           # Compiled extensions
+*.egg
 *.egg-info/
 dist/
 build/
-.DS_Store
+pip-log.txt
+pip-delete-this-directory.txt
+.Python
+
+# ============================================================================
+# Testing & Coverage
+# ============================================================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+nosetests.xml
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ============================================================================
+# IDE & Editor
+# ============================================================================
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+
+# ============================================================================
+# Project-Specific (Runtime Generated Files)
+# ============================================================================
+uploads/                       # User uploaded files (generated)
+reports/                       # Generated PDF reports
+claimsense.db                  # SQLite database (development)
+claimsense.db-journal
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================================================
+# Web/Frontend Build
+# ============================================================================
+web/node_modules/
+web/dist/
+web/build/
+web/*.tsbuildinfo
+
+# ============================================================================
+# Logging & Temporary
+# ============================================================================
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+
+# ============================================================================
+# OS-Specific
+# ============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ============================================================================
+# IDE Generated
+# ============================================================================
+*.iml
+.gradle
+local.properties
+*.iws
+*.ipr
+.classpath
+.c9/
+*.launch
+.settings/
+.project
+.pydevproject
+.factorypath
+
+# ============================================================================
+# Misc
+# ============================================================================
+*.bak
+*.orig
+.env.bak
+celerybeat-schedule
+

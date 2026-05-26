@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     
     # ============ API Keys & Secrets ============
     gemini_api_key: str = ""
+    tavily_api_key: str = ""
     claimsense_auth_secret: str
     
     # ============ Authentication ============
