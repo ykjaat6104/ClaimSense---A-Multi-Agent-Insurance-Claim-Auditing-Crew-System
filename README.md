@@ -21,78 +21,7 @@ It combines document upload, OCR/text extraction, structured field extraction, p
 
 ClaimSense is organized as four cooperating layers: the user interface, the API and workflow layer, the intelligence layer, and the persistence/infrastructure layer. Each layer is intentionally narrow so the claim lifecycle stays traceable from upload to report output.
 
-### 1) High-level system view
-
-```
-  ┌──────────────────┐
-  │ Adjuster/Reviewer│
-  └────────┬─────────┘
-           │
-           ▼
-  ┌──────────────────┐
-  │   React Web App  │
-  └────────┬─────────┘
-           │  JWT + REST
-           ▼
-  ┌──────────────────┐
-  │ FastAPI API Layer│
-  └────────┬─────────┘
-           │
-           ├── Auth + Rate Limit
-           │
-           ▼
-  ┌──────────────────┐
-  │ Claim Workflow   │
-  │ Engine           │
-  └────────┬─────────┘
-           │
-           ▼
-  ┌──────────────────┐
-  │Document Parsing  │
-  │      & OCR       │
-  └────────┬─────────┘
-           │
-           ▼
-  ┌──────────────────┐
-  │   Structured     │
-  │   Extraction     │
-  └────────┬─────────┘
-           │
-           ▼
-  ┌──────────────────┐
-  │   Hybrid RAG     │
-  │(graph / vector/  │
-  │  BM25 / simple)  │
-  └────────┬─────────┘
-           │
-           ▼
-  ┌──────────────────┐
-  │  Multi-Agent     │
-  │  Claim Review    │
-  └────────┬─────────┘
-           │
-           ▼
-  ┌──────────────────┐
-  │ Risk + Fraud     │
-  │ Scoring          │
-  └──┬────────────┬──┘
-     │            │
-     ▼            ▼
- ┌────────┐ ┌──────────┐
- │  PDF   │ │PostgreSQL│
- │ Report │ │  Audit   │
- │ Builder│ │  Store   │
- └───┬────┘ └────┬─────┘
-     │           │
-     └───┬───────┘
-         │
-         ▼
-  ┌──────────────────┐
-  │   React Web App  │
-  └──────────────────┘
-```
-
-### 2) Layered architecture view
+### 1) Layered architecture view
 
 ```mermaid
 flowchart TB
@@ -131,7 +60,7 @@ flowchart TB
   MIG --> PG
 ```
 
-### 3) Claim workflow sequence
+### 2) Claim workflow sequence
 
 ```mermaid
 sequenceDiagram
@@ -162,7 +91,7 @@ sequenceDiagram
   API->>Web: Return status, logs, and final result
 ```
 
-### 4) Multi-agent workflow and roles
+### 3) Multi-agent workflow and roles
 
 This is the core review loop used by ClaimSense. The claim is first normalized, then split into parallel analysis paths, then reconciled by a conditional router and final judge.
 
@@ -240,82 +169,44 @@ flowchart LR
 
 The app nav is intentionally small. The table below lists each tab, what it is for, and whether it is needed today.
 
-| Tab | What it is for | Needed now? |
-|---|---|---|
-| Dashboard | Portfolio overview, recent claims, and risk posture. | Yes |
-| Claims Mgmt. | Upload claim, invoice, policy, and evidence files, then run the multi-agent workflow. | Yes |
-| Reports | Search historical claims, compare cases, and open report detail pages. | Yes |
-| Results | Claim-level multi-agent output, human decision buttons, and PDF/JSON export. This is a contextual page reached from Claims Mgmt. or Reports, not a top-level nav tab. | Yes |
-| CATs | Catastrophe exposure and event-linked claims roadmap module. | No, remove for now |
-| Expenses | Loss adjustment expense and vendor spend tracking roadmap module. | No, remove for now |
-| Accounts | Policyholder and broker account management roadmap module. | No, remove for now |
-| Data Warehouse | Bulk exports, BI feeds, and model-training datasets roadmap module. | No, remove for now |
+| Tab | What it is for |
+|---|---|
+| Dashboard | Portfolio overview, recent claims, and risk posture. |
+| Claims Mgmt. | Upload claim, invoice, policy, and evidence files, then run the multi-agent workflow. |
+| Reports | Search historical claims, compare cases, and open report detail pages. |
+| Results | Claim-level multi-agent output, human decision buttons, and PDF/JSON export. This is a contextual page reached from Claims Mgmt. or Reports, not a top-level nav tab. |
 
-### What each active tab supports
-
-- Dashboard: overview, queue snapshot, recent claims, and entry point to a new evaluation.
-- Claims Mgmt.: file upload, upload queue, remove-file controls, upload button, process button, and reset button.
-- Reports: search button, reset button, compare-selected button, and links into claim results.
-- Results: approve, reject, manual review, download PDF, and export JSON buttons.
 
 ### 5) Multi-modal ingestion flow
 
 ClaimSense works with several input modalities at once:
 
 ```
-  ┌──────────────────┐
-  │ Claim Form       │──┐
-  │ (PDF/Image/Text) │  │
-  ├──────────────────┤  │
-  │ Invoice/Estimate │──┤
-  │ (PDF/Image/Text) │  │
-  ├──────────────────┤  │
-  │ Policy Document  │──┤
-  │ (PDF/Image/Text) │  │
-  ├──────────────────┤  │
-  │ Optional Evidence│  │
-  │ Files            │──┘
-  └──────────────────┘   │
-         │               │
-         ▼               │
-  ┌──────────────┐       │
-  │ Text         │       │
-  │ Extraction   │       │
-  └──────┬───────┘       │
-         │               │
-         ▼               │
-  ┌──────────────┐       │
-  │ Normalize &  │       │
-  │ Clean Text   │       │
-  └──────┬───────┘       │
-         │               │
-         ▼               │
-  ┌──────────────────┐   │
-  │  Structured JSON │   │
-  │    Objects       │   │
-  └──────┬───────────┘   │
-         │               │
-         │               │
-  ┌──────┴──────┐  ┌─────┴─────────┐
-  │ Hybrid RAG  │  │ Past Claims   │
-  │ Policy      │  │ CSV -> Hist.  │
-  │ Retrieval   │  │ -> Behavioral │
-  └──────┬──────┘  │ Signals       │
-         │         └──────┬────────┘
-         └───────┬────────┘
-                 │
-                 ▼
-         ┌──────────────┐
-         │ Agent Debate │
-         │(Multi-Agent) │
-         └──────┬───────┘
-                │
-                ▼
-   ┌──────────────────────┐
-   │ Verdict / Risk Score │
-   │ Fraud Probability /  │
-   │ PDF Report           │
-   └──────────────────────┘
+Inputs
+┌─────────────────────────┐
+│ Claim Form              │──┐
+│ (PDF/Image/Text)        │  |
+├─────────────────────────┤  │
+│ Invoice / Estimate      │  ├──► [Text Extraction] ──► [Normalize & Clean Text] ──► [Structured JavaScript Object Notation] 
+│ (PDF/Image/Text)        |  |                                                                                       |              
+├─────────────────────────┤  │                                                                                       |              
+│ Policy Document         │  │                                                                                       |              
+│ (PDF/Image/Text)        |  |                                                                                       |              
+├─────────────────────────┤  │                                                                                       |              
+│ Optional Evidence Files │──┘                                                                                       |              
+└─────────────────────────┘                                                                                          ▼              
+                                                               ┌─────────────────────────┐     ┌───────────────────────────────────┐
+                                                               │    Hybrid RAG           │──►  │                                   |
+                                                               │ Policy Retrieval        │     │    Agent Debate                   │ ──► ┌────────────────────────┐
+                                                               └─────────────────────────┘     │    (Multi-Agent System)           │     │ Verdict / Risk Score   │
+                                                                                               │                                   │     | Fraud Probability /    │
+                                                               ┌─────────────────────────┐     └───────────────────────────────────┘     │ PDF Report             |
+                                                               │   Past Claims           │──►                                            └────────────────────────┘
+                                                               │  (CSV / History/        │
+                                                               |  Behavioral Signals     │
+                                                               └─────────────────────────┘
+
+
 ```
 
 ## 🧠 Detailed Data Flow
