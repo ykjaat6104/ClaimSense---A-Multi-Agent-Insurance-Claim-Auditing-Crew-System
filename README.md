@@ -23,33 +23,112 @@ ClaimSense is organized as four cooperating layers: the user interface, the API 
 
 ### 1) High-level system view
 
-```mermaid
-flowchart TB
-  U[Adjuster / Reviewer] --> W[React Web App]
-  W -->|JWT + REST| API[FastAPI API Layer]
-  API --> AUTH[Auth + Rate Limit]
-  API --> PIPE[Claim Workflow Engine]
-  PIPE --> EX[Document Parsing & OCR]
-  EX --> STR[Structured Extraction]
-  STR --> RAG[Hybrid RAG]
-  RAG --> AG[Multi-Agent Claim Review]
-  AG --> SCORE[Risk + Fraud Scoring]
-  SCORE --> PDF[PDF Report Builder]
-  SCORE --> DB[(PostgreSQL Audit Store)]
-  PDF --> W
-  DB --> W
+```
+  ┌──────────────────┐
+  │ Adjuster/Reviewer│
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │   React Web App  │
+  └────────┬─────────┘
+           │  JWT + REST
+           ▼
+  ┌──────────────────┐
+  │ FastAPI API Layer│
+  └────────┬─────────┘
+           │
+           ├── Auth + Rate Limit
+           │
+           ▼
+  ┌──────────────────┐
+  │ Claim Workflow   │
+  │ Engine           │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │Document Parsing  │
+  │      & OCR       │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │   Structured     │
+  │   Extraction     │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │   Hybrid RAG     │
+  │(graph / vector/  │
+  │  BM25 / simple)  │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  Multi-Agent     │
+  │  Claim Review    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │ Risk + Fraud     │
+  │ Scoring          │
+  └──┬────────────┬──┘
+     │            │
+     ▼            ▼
+ ┌────────┐ ┌──────────┐
+ │  PDF   │ │PostgreSQL│
+ │ Report │ │  Audit   │
+ │ Builder│ │  Store   │
+ └───┬────┘ └────┬─────┘
+     │           │
+     └───┬───────┘
+         │
+         ▼
+  ┌──────────────────┐
+  │   React Web App  │
+  └──────────────────┘
 ```
 
 ### 2) Layered architecture view
 
-```
-L1: Presentation Layer  --  React + Vite UI -> React Router Pages
-L2: Application Layer   --  FastAPI -> Auth + Claims Routes -> Services (parsing, extraction, RAG, PDF, scoring) -> LangGraph Agent Workflow
-L3: Intelligence Layer  --  Gemini-assisted reasoning | Deterministic rules | Fraud/anomaly models
-L4: Data Layer          --  PostgreSQL | File Storage | Alembic migrations
+```mermaid
+flowchart TB
+  subgraph L1[Presentation Layer]
+    UI[React + Vite UI]
+    ROUTER[React Router Pages]
+  end
 
-Flow: UI -> Router -> FastAPI -> Routes -> Services -> Agents -> LLM/Rules/ML
-Services also write to: PostgreSQL, File Storage
+  subgraph L2[Application Layer]
+    FASTAPI[FastAPI]
+    ROUTES[Auth + Claims Routes]
+    SVC[Services: parsing, extraction, RAG, PDF, scoring]
+    AGENTS[LangGraph Agent Workflow]
+  end
+
+  subgraph L3[Intelligence Layer]
+    LLM[Gemini-assisted reasoning]
+    RULES[Deterministic rules + thresholds]
+    ML[Fraud/anomaly models]
+  end
+
+  subgraph L4[Data Layer]
+    PG[(PostgreSQL)]
+    FILES[(Uploads + Reports)]
+    MIG[Alembic migrations]
+  end
+
+  UI --> ROUTER --> FASTAPI
+  FASTAPI --> ROUTES --> SVC
+  SVC --> AGENTS
+  AGENTS --> LLM
+  AGENTS --> RULES
+  SVC --> ML
+  SVC --> PG
+  SVC --> FILES
+  MIG --> PG
 ```
 
 ### 3) Claim workflow sequence
@@ -87,14 +166,26 @@ sequenceDiagram
 
 This is the core review loop used by ClaimSense. The claim is first normalized, then split into parallel analysis paths, then reconciled by a conditional router and final judge.
 
-```
-Claim Input -> Extraction -> State Management
-  -> Policy Analyst  }--+
-  -> Data Miner     }--+--> Parallel Execution
-                         -> Fraud Auditor
-                         -> Conditional Router
-                           -> (loop back to Policy Analyst if unclear)
-                           -> Judge Node -> Final Decision
+```mermaid
+flowchart TD
+    CLAIM[Claim Input] --> EXTRACT[Extraction]
+    EXTRACT --> STATE[State Management]
+
+    STATE --> PA[Policy Analyst]
+    STATE --> DM[Data Miner]
+
+    subgraph PARALLEL[Parallel Execution]
+        PA
+        DM
+    end
+
+    PA --> FA[Fraud Auditor]
+    DM --> FA
+
+    FA --> ROUTER{Conditional Router}
+    ROUTER -->|unclear| PA
+    ROUTER -->|clear| JUDGE[Judge Node]
+    JUDGE --> DECISION[Final Decision]
 ```
 
 The agent layer is designed as a crew of specialized roles that review the same claim from different angles:
@@ -104,17 +195,19 @@ The agent layer is designed as a crew of specialized roles that review the same 
 - Fraud Auditor: looks for suspicious patterns, market mismatches, and anomaly signals.
 - Judge: synthesizes all evidence and emits the final decision-support outcome.
 
-```
-Structured inputs (claim, invoice, policy, evidence, RAG snippets)
-  -> Policy Analyst
-  -> Data Miner
-  -> Fraud Auditor
-  -> Conditional Router
-  -> Judge Node
-  -> Decision Support Output
-    -> Approved: Suggested payout amount
-    -> Rejected: Denial rationale
-    -> Review: Escalation for manual review
+```mermaid
+flowchart LR
+    INPUT[Structured inputs<br/>claim, invoice, policy,<br/>evidence, RAG snippets] --> PA[Policy Analyst]
+    INPUT --> DM[Data Miner]
+    PA --> FA[Fraud Auditor]
+    DM --> FA
+    FA --> ROUTER{Conditional Router}
+    ROUTER --> JUDGE[Judge Node]
+    JUDGE --> OUTPUT[Decision Support Output]
+
+    OUTPUT --> APPROVED[Approved: Suggested payout]
+    OUTPUT --> REJECTED[Rejected: Denial rationale]
+    OUTPUT --> REVIEW[Review: Escalation]
 ```
 
 ## 🤖 Agent Roles & Responsibilities
@@ -170,17 +263,59 @@ The app nav is intentionally small. The table below lists each tab, what it is f
 ClaimSense works with several input modalities at once:
 
 ```
-Claim Form (PDF/Image/Text) -\
-Invoice/Estimate (PDF/Image/Text) --> Text Extraction --> Normalize Text
-Policy (PDF/Image/Text) -------/                           |
-Optional Evidence Files ------/                            v
-                                                  Structured JSON Objects
-Optional Past Claims CSV -> Historical Context -----> Behavioral Signals
-                                                        |
-Policy Retrieval (Hybrid RAG) -----> Agent Debate <----/
-                                        |
-                                        v
-                          Verdict, Risk Score, Fraud Probability, PDF Report
+  ┌──────────────────┐
+  │ Claim Form       │──┐
+  │ (PDF/Image/Text) │  │
+  ├──────────────────┤  │
+  │ Invoice/Estimate │──┤
+  │ (PDF/Image/Text) │  │
+  ├──────────────────┤  │
+  │ Policy Document  │──┤
+  │ (PDF/Image/Text) │  │
+  ├──────────────────┤  │
+  │ Optional Evidence│  │
+  │ Files            │──┘
+  └──────────────────┘   │
+         │               │
+         ▼               │
+  ┌──────────────┐       │
+  │ Text         │       │
+  │ Extraction   │       │
+  └──────┬───────┘       │
+         │               │
+         ▼               │
+  ┌──────────────┐       │
+  │ Normalize &  │       │
+  │ Clean Text   │       │
+  └──────┬───────┘       │
+         │               │
+         ▼               │
+  ┌──────────────────┐   │
+  │  Structured JSON │   │
+  │    Objects       │   │
+  └──────┬───────────┘   │
+         │               │
+         │               │
+  ┌──────┴──────┐  ┌─────┴─────────┐
+  │ Hybrid RAG  │  │ Past Claims   │
+  │ Policy      │  │ CSV -> Hist.  │
+  │ Retrieval   │  │ -> Behavioral │
+  └──────┬──────┘  │ Signals       │
+         │         └──────┬────────┘
+         └───────┬────────┘
+                 │
+                 ▼
+         ┌──────────────┐
+         │ Agent Debate │
+         │(Multi-Agent) │
+         └──────┬───────┘
+                │
+                ▼
+   ┌──────────────────────┐
+   │ Verdict / Risk Score │
+   │ Fraud Probability /  │
+   │ PDF Report           │
+   └──────────────────────┘
 ```
 
 ## 🧠 Detailed Data Flow
@@ -215,15 +350,48 @@ For the full technical deep dive, see [MULTI_AGENT_ARCHITECTURE.md](MULTI_AGENT_
 The README already mentions fraud scoring at a high level. This section adds the dedicated fraud-detection pipeline and shows how it fits inside the broader claim review flow.
 
 ```
-Claim Data Input
-  -> Claim Data ------\
-  -> Market Data & Vendor --> FraudDetectionEngine
-  -> Historical Claims -/       |
-                                v
-            PatternRecognizer --+--> Fraud Signal List
-            AnomalyDetector   --/       |
-            RiskScorer        --+       v
-                                      FraudDetectionResult (verdict, risk score, fraud prob)
+            ┌─────────────────────┐
+            │   Claim Data Input  │
+            └──┬──────────┬───────┘
+               │          │
+               ▼          ▼
+  ┌────────┐  ┌────────┐  ┌──────────────┐
+  │ Claim  │  │ Market │  │  Historical  │
+  │ Data   │  │ Data & │  │   Claims     │
+  │        │  │ Vendor │  │              │
+  └───┬────┘  └───┬────┘  └──────┬───────┘
+      │           │              │
+      └───────────┼──────────────┘
+                  │
+                  ▼
+         ┌────────────────┐
+         │  FraudDetection│
+         │    Engine      │
+         └───────┬────────┘
+                 │
+     ┌───────────┼───────────┐
+     │           │           │
+     ▼           ▼           ▼
+ ┌────────┐ ┌────────┐ ┌────────┐
+ │Pattern │ │Anomaly │ │  Risk  │
+ │Recogni-│ │Detector│ │ Scorer │
+ │zer     │ │        │ │        │
+ └───┬────┘ └───┬────┘ └───┬────┘
+     │          │          │
+     └──────────┼──────────┘
+                │
+                ▼
+        ┌──────────────┐
+        │ Fraud Signal │
+        │    List      │
+        └──────┬───────┘
+               │
+               ▼
+       ┌──────────────────┐
+       │ FraudDetection   │
+       │ Result           │
+       │(verdict,risk,prob)│
+       └──────────────────┘
 ```
 
 ### Fraud detection components
