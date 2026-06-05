@@ -8,20 +8,12 @@ It explains how the claim pipeline is split into extraction, shared state manage
 
 ClaimSense processes a claim as a structured review workflow rather than a single monolithic AI call. The design keeps every step auditable and makes each agent responsible for a narrow task.
 
-```mermaid
-flowchart TB
-  INPUT[Claim Input] --> EX[Extraction]
-  EX --> SM[State Management]
-
-  SM --> PA[Policy Analyst]
-  SM --> DM[Data Miner]
-  PA --> PAR[Parallel Execution]
-  DM --> PAR
-
-  PAR --> FA[Fraud Auditor]
-  FA --> ROUTER[Conditional Router]
-  ROUTER --> JUDGE[Judge Node]
-  JUDGE --> OUT[Final Decision]
+```
+Claim Input -> Extraction -> State Management
+  -> Policy Analyst  }--+
+  -> Data Miner     }--+--> Parallel Execution
+                         -> Fraud Auditor
+                         -> Conditional Router -> Judge Node -> Final Decision
 ```
 
 ## 2. System Goals
@@ -104,45 +96,31 @@ The Judge synthesizes all evidence and returns the final decision-support output
 
 ## 4. Detailed Flow
 
-```mermaid
-sequenceDiagram
-  autonumber
-  actor Adjuster as Adjuster
-  participant API as FastAPI API
-  participant Parse as Parser/OCR
-  participant State as Shared State
-  participant PA as Policy Analyst
-  participant DM as Data Miner
-  participant FA as Fraud Auditor
-  participant Router as Conditional Router
-  participant Judge as Judge Node
-  participant DB as PostgreSQL
-  participant PDF as PDF Report
-
-  Adjuster->>API: Upload claim package
-  API->>Parse: Extract document text
-  Parse->>State: Write structured inputs
-  State->>PA: Policy context
-  State->>DM: Customer and payment context
-  PA->>State: Coverage details
-  DM->>State: Historical risk context
-  State->>FA: Combined evidence
-  FA->>State: Fraud flags and market checks
-  State->>Router: Review readiness
-  Router->>Judge: Route to final decision
-  Judge->>State: Verdict and rationale
-  State->>DB: Persist result and logs
-  State->>PDF: Render report
-  PDF->>Adjuster: Return downloadable report
+```
+Adjuster -> FastAPI API: Upload claim package
+FastAPI API -> Parser/OCR: Extract document text
+Parser/OCR -> Shared State: Write structured inputs
+Shared State -> Policy Analyst: Policy context
+Shared State -> Data Miner: Customer and payment context
+Policy Analyst -> Shared State: Coverage details
+Data Miner -> Shared State: Historical risk context
+Shared State -> Fraud Auditor: Combined evidence
+Fraud Auditor -> Shared State: Fraud flags and market checks
+Shared State -> Conditional Router: Review readiness
+Conditional Router -> Judge: Route to final decision
+Judge -> Shared State: Verdict and rationale
+Shared State -> PostgreSQL: Persist result and logs
+Shared State -> PDF Report: Render report
+PDF Report -> Adjuster: Return downloadable report
 ```
 
 ## 5. Agent Roles & Responsibilities
 
 ### 🎓 Policy Analyst (The Scholar)
 
-- Job: extract policy coverage details.
-- Tools: RAG search on policy documents.
-- Output: coverage limits, exclusions, deductibles.
+- Job: extract policy coverage details, exclusions, limits, deductibles, and clause relationships.
+- Tools: Hybrid RAG (graph-aware: knowledge graph + vector + BM25 as primary; simple vector as fallback).
+- Output: coverage limits, exclusions, deductibles, clause_relationships, rag_method_used.
 - Example: This policy covers theft up to $10,000 with a $500 deductible.
 
 ### 🔍 Data Miner (The Investigator)
@@ -170,16 +148,16 @@ sequenceDiagram
 
 The shared state is the backbone of the architecture. It prevents each agent from starting from scratch and keeps the system auditable.
 
-```mermaid
-flowchart LR
-  META[Metadata] --> STATE[ClaimAuditState]
-  RAW[Raw Text Inputs] --> STATE
-  STR[Structured JSON] --> STATE
-  RAG[Policy Retrieval Chunks] --> STATE
-  FRAUD[Fraud Signals] --> STATE
-  SCORE[Risk Scores] --> STATE
-  LOGS[Processing Logs] --> STATE
-  ERR[Errors and Warnings] --> STATE
+```
+Metadata (claim_id, user_id, policy_id) ---\
+Raw Text Inputs ---------------------------\
+Structured JSON ----------------------------> ClaimAuditState
+Policy Retrieval Chunks (rag_chunks) ------/      |
+Fraud Signals -----------------------------/      |
+Risk Scores -------------------------------/      |
+Processing Logs ---------------------------/      |
+Errors and Warnings ----------------------/       v
+                                          Agent Nodes read from and write to this state
 ```
 
 ### Typical state categories
@@ -197,15 +175,12 @@ flowchart LR
 
 The conditional router prevents premature decisions when the evidence is weak.
 
-```mermaid
-flowchart TD
-  START[Fraud analysis complete] --> CHECK{Coverage clear?}
-  CHECK -->|Yes| JUDGE[Proceed to Judge]
-  CHECK -->|No| LOOP{Iteration < max?}
-  LOOP -->|Yes| PA[Loop back to Policy Analyst]
-  LOOP -->|No| JUDGE
-  PA --> FA[Run Fraud Auditor again]
-  FA --> CHECK
+```
+Fraud analysis complete -> Is coverage clear?
+  YES -> Proceed to Judge
+  NO  -> Is iteration count < max?
+    YES -> Loop back to Policy Analyst -> Run Fraud Auditor again -> Check again
+    NO  -> Proceed to Judge anyway
 ```
 
 ### Routing conditions
@@ -219,25 +194,15 @@ flowchart TD
 
 ClaimSense includes a dedicated fraud detection layer that supplements the agent workflow.
 
-```mermaid
-flowchart TB
-  INPUT[Claim Data Input] --> CLAIM[Claim Data]
-  INPUT --> MARKET[Market Data & Vendor]
-  INPUT --> HISTORY[Historical Claims]
-
-  CLAIM --> ENGINE[FraudDetectionEngine]
-  MARKET --> ENGINE
-  HISTORY --> ENGINE
-
-  ENGINE --> PATTERN[PatternRecognizer]
-  ENGINE --> ANOMALY[AnomalyDetector]
-  ENGINE --> RISK[RiskScorer]
-
-  PATTERN --> SIGNALS[Fraud Signal List]
-  ANOMALY --> SIGNALS
-  RISK --> SIGNALS
-
-  SIGNALS --> RESULT[FraudDetectionResult]
+```
+Claim Data Input
+  -> Claim Data ------\
+  -> Market Data & Vendor --> FraudDetectionEngine
+  -> Historical Claims -/       |
+                                v
+            PatternRecognizer --+--> Fraud Signal List --> FraudDetectionResult
+            AnomalyDetector   --/       |                   (verdict, risk score,
+            RiskScorer        --+       v                    fraud probability)
 ```
 
 ### Fraud detection components
@@ -260,23 +225,17 @@ flowchart TB
 
 ## 9. Data Flow to Final Report
 
-```mermaid
-flowchart TB
-  U[User] --> UI[Web UI]
-  UI --> UP[Upload Claim Package]
-  UP --> VAL[Validate Input]
-  VAL --> FS[Persist Files]
-  FS --> TXT[Extract Text]
-  TXT --> JSON[Structure Data]
-  JSON --> RET[Retrieve Policy Evidence]
-  RET --> AGENTS[Agent Decision Making]
-  AGENTS --> FRAUD[Fraud Analysis]
-  FRAUD --> RISK[Risk + Fraud Scoring]
-  RISK --> JUDGE[Final Judgment]
-  JUDGE --> REP[Generate PDF Report]
-  JUDGE --> DB[(PostgreSQL)]
-  REP --> UI
-  DB --> UI
+```
+User -> Web UI -> Upload Claim Package -> Validate Input
+  -> Persist Files -> Extract Text -> Structure Data
+  -> Retrieve Policy Evidence (Hybrid RAG)
+  -> Agent Decision Making
+    -> Policy Analyst + Data Miner (parallel)
+    -> Fraud Auditor
+  -> Conditional Router
+  -> Final Judgment (Judge)
+  -> Generate PDF Report --> Web UI
+  -> PostgreSQL Audit Store --> Web UI
 ```
 
 ## 10. Code Map
@@ -292,6 +251,9 @@ flowchart TB
 | [app/agents/orchestrator.py](app/agents/orchestrator.py) | Multi-agent workflow routing |
 | [app/services/fraud_detection_v2.py](app/services/fraud_detection_v2.py) | Fraud detection engine and signal aggregation |
 | [app/services/risk_scoring.py](app/services/risk_scoring.py) | Risk and fraud score computation |
+| [app/services/rag_service.py](app/services/rag_service.py) | Vector and hybrid (vector+BM25) policy retrieval |
+| [app/services/policy_graph.py](app/services/policy_graph.py) | Policy knowledge graph for clause extraction and relationships |
+| [app/services/hybrid_rag_service.py](app/services/hybrid_rag_service.py) | Hybrid RAG orchestrator (graph-aware primary, hybrid/simple fallback) |
 | [app/services/report_pdf.py](app/services/report_pdf.py) | PDF rendering |
 | [app/services/web_search.py](app/services/web_search.py) | External vendor and market search |
 

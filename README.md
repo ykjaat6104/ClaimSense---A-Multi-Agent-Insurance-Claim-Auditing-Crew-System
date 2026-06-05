@@ -11,8 +11,8 @@ It combines document upload, OCR/text extraction, structured field extraction, p
 - Ingests claim, invoice, policy, and optional evidence files.
 - Extracts text from PDFs, images, and text uploads.
 - Structures claim data into machine-readable JSON.
-- Retrieves relevant policy clauses using RAG-style retrieval.
-- Runs a multi-agent debate to support approve, reject, or review outcomes.
+- Retrieves relevant policy clauses using hybrid RAG (graph-aware as primary, simple vector as fallback).
+- Runs a multi-agent debate (Policy Analyst, Data Miner, Fraud Auditor, Judge) to produce decisions and scores.
 - Computes fraud probability and risk scores.
 - Generates a PDF report and audit trail for each processed claim.
 - Serves a React dashboard for case review and workflow tracking.
@@ -23,109 +23,61 @@ ClaimSense is organized as four cooperating layers: the user interface, the API 
 
 ### 1) High-level system view
 
-```mermaid
-flowchart LR
-  U[Adjuster / Reviewer] --> W[React Web App]
-  W -->|JWT + REST| API[FastAPI API Layer]
-  API --> AUTH[Auth + Rate Limit]
-  API --> PIPE[Claim Workflow Engine]
-  PIPE --> EX[Document Parsing & OCR]
-  EX --> STR[Structured Extraction]
-  STR --> RAG[Policy Retrieval]
-  RAG --> AG[Multi-Agent Claim Review]
-  AG --> SCORE[Risk + Fraud Scoring]
-  SCORE --> PDF[PDF Report Builder]
-  SCORE --> DB[(PostgreSQL Audit Store)]
-  PDF --> W
-  DB --> W
+```
+Adjuster / Reviewer -> React Web App
+  -> FastAPI API Layer (JWT + REST)
+    -> Auth + Rate Limit
+    -> Claim Workflow Engine
+      -> Document Parsing & OCR
+      -> Structured Extraction
+      -> Policy Retrieval (Hybrid RAG)
+      -> Multi-Agent Claim Review
+      -> Risk + Fraud Scoring
+        -> PDF Report Builder --> Web UI
+        -> PostgreSQL Audit Store --> Web UI
 ```
 
 ### 2) Layered architecture view
 
-```mermaid
-flowchart TB
-  subgraph L1[Presentation Layer]
-    UI[React + Vite UI]
-    ROUTER[React Router Pages]
-  end
+```
+L1: Presentation Layer  --  React + Vite UI -> React Router Pages
+L2: Application Layer   --  FastAPI -> Auth + Claims Routes -> Services (parsing, extraction, RAG, PDF, scoring) -> LangGraph Agent Workflow
+L3: Intelligence Layer  --  Gemini-assisted reasoning | Deterministic rules | Fraud/anomaly models
+L4: Data Layer          --  PostgreSQL | File Storage | Alembic migrations
 
-  subgraph L2[Application Layer]
-    FASTAPI[FastAPI]
-    ROUTES[Auth + Claims Routes]
-    SVC[Services: parsing, extraction, RAG, PDF, scoring]
-    AGENTS[LangGraph Agent Workflow]
-  end
-
-  subgraph L3[Intelligence Layer]
-    LLM[Gemini-assisted reasoning]
-    RULES[Deterministic rules + thresholds]
-    ML[Fraud/anomaly models]
-  end
-
-  subgraph L4[Data Layer]
-    PG[(PostgreSQL)]
-    FILES[(Uploads + Reports)]
-    MIG[Alembic migrations]
-  end
-
-  UI --> ROUTER --> FASTAPI
-  FASTAPI --> ROUTES --> SVC
-  SVC --> AGENTS
-  AGENTS --> LLM
-  AGENTS --> RULES
-  SVC --> ML
-  SVC --> PG
-  SVC --> FILES
-  MIG --> PG
+Flow: UI -> Router -> FastAPI -> Routes -> Services -> Agents -> LLM/Rules/ML
+Services also write to: PostgreSQL, File Storage
 ```
 
 ### 3) Claim workflow sequence
 
-```mermaid
-sequenceDiagram
-  autonumber
-  actor Adjuster as Adjuster
-  participant Web as React UI
-  participant API as FastAPI API
-  participant Store as File Store
-  participant Parse as Parser/OCR
-  participant Extract as Structured Extraction
-  participant RAG as Policy Retrieval
-  participant Agents as Multi-Agent Graph
-  participant Score as Risk Scoring
-  participant DB as PostgreSQL
-  participant PDF as PDF Renderer
-
-  Adjuster->>Web: Sign in and upload claim package
-  Web->>API: POST /api/upload-claim
-  API->>Store: Save claim, invoice, policy, evidence
-  API->>Parse: Read and normalize source documents
-  Parse->>Extract: Send raw text
-  Extract->>RAG: Build retrieval query
-  RAG->>Agents: Provide relevant policy snippets
-  Agents->>Score: Approve / Reject / Mediator output
-  Score->>DB: Persist score, logs, and verdict data
-  Score->>PDF: Render final report
-  PDF->>DB: Store report path and status
-  API->>Web: Return status, logs, and final result
+```
+Adjuster -> React UI: Sign in and upload claim package
+React UI -> FastAPI API: POST /api/upload-claim
+FastAPI API -> File Store: Save claim, invoice, policy, evidence
+FastAPI API -> Parser/OCR: Read and normalize source documents
+Parser/OCR -> Structured Extraction: Send raw text
+Structured Extraction -> Policy Retrieval: Build retrieval query
+Policy Retrieval -> Multi-Agent Graph: Provide relevant policy snippets
+Multi-Agent Graph -> Risk Scoring: Approve / Reject / Mediator output
+Risk Scoring -> PostgreSQL: Persist score, logs, and verdict data
+Risk Scoring -> PDF Renderer: Render final report
+PDF Renderer -> PostgreSQL: Store report path and status
+FastAPI API -> React UI: Return status, logs, and final result
 ```
 
 ### 4) Multi-agent workflow and roles
 
 This is the core review loop used by ClaimSense. The claim is first normalized, then split into parallel analysis paths, then reconciled by a conditional router and final judge.
 
-```mermaid
-flowchart TD
-  IN[Claim Input] --> EX[Extraction]
-  EX --> SM[State Management]
-  SM --> PA[Policy Analyst]
-  SM --> DM[Data Miner]
-  PA --> PAR[Parallel Execution]
-  DM --> PAR
-  PAR --> FA[Fraud Auditor]
-  FA --> CR[Conditional Router]
-  CR --> J[Judge Node]
-  J --> OUT[Final Decision]
+```
+Claim Input -> Extraction -> State Management
+  -> Policy Analyst  }--+
+  -> Data Miner     }--+--> Parallel Execution
+                         -> Fraud Auditor
+                         -> Conditional Router
+                           -> (loop back to Policy Analyst if unclear)
+                           -> Judge Node -> Final Decision
 ```
 
 The agent layer is designed as a crew of specialized roles that review the same claim from different angles:
@@ -135,27 +87,25 @@ The agent layer is designed as a crew of specialized roles that review the same 
 - Fraud Auditor: looks for suspicious patterns, market mismatches, and anomaly signals.
 - Judge: synthesizes all evidence and emits the final decision-support outcome.
 
-```mermaid
-flowchart TD
-  INPUT[Structured claim, invoice, policy, evidence, and RAG snippets] --> PA[Policy Analyst]
-  INPUT --> DM[Data Miner]
-  PA --> FA[Fraud Auditor]
-  DM --> FA
-  FA --> ROUTER[Conditional Router]
-  ROUTER --> JUDGE[Judge Node]
-  JUDGE --> OUTPUT[Decision Support Output]
-  OUTPUT --> VERDICT{Approved / Rejected / Review}
-  VERDICT -->|Approved| PAY[Suggested payout amount]
-  VERDICT -->|Rejected| DENY[Denial rationale]
-  VERDICT -->|Review| ESC[Escalation for manual review]
+```
+Structured inputs (claim, invoice, policy, evidence, RAG snippets)
+  -> Policy Analyst
+  -> Data Miner
+  -> Fraud Auditor
+  -> Conditional Router
+  -> Judge Node
+  -> Decision Support Output
+    -> Approved: Suggested payout amount
+    -> Rejected: Denial rationale
+    -> Review: Escalation for manual review
 ```
 
 ## 🤖 Agent Roles & Responsibilities
 
 ### 🎓 Policy Analyst (The Scholar)
-- **Job**: Extract policy coverage details.
-- **Tools**: RAG search on policy documents.
-- **Output**: Coverage limits, exclusions, deductibles.
+- **Job**: Extract policy coverage details, exclusions, limits, deductibles, and clause relationships.
+- **Tools**: Hybrid RAG (graph-aware: knowledge graph + vector + BM25 as primary; simple vector as fallback).
+- **Output**: Coverage limits, exclusions, deductibles, clause_relationships, rag_method_used.
 - **Example**: "This policy covers theft up to $10,000 with $500 deductible"
 
 ### 🔍 Data Miner (The Investigator)
@@ -176,24 +126,44 @@ flowchart TD
 - **Output**: APPROVED/DENIED/ESCALATED with payout amount and risk score.
 - **Example**: "APPROVED at fair market value ($1,700 after deductible)"
 
+## 🧭 Navigation Tabs
+
+The app nav is intentionally small. The table below lists each tab, what it is for, and whether it is needed today.
+
+| Tab | What it is for | Needed now? |
+|---|---|---|
+| Dashboard | Portfolio overview, recent claims, and risk posture. | Yes |
+| Claims Mgmt. | Upload claim, invoice, policy, and evidence files, then run the multi-agent workflow. | Yes |
+| Reports | Search historical claims, compare cases, and open report detail pages. | Yes |
+| Results | Claim-level multi-agent output, human decision buttons, and PDF/JSON export. This is a contextual page reached from Claims Mgmt. or Reports, not a top-level nav tab. | Yes |
+| CATs | Catastrophe exposure and event-linked claims roadmap module. | No, remove for now |
+| Expenses | Loss adjustment expense and vendor spend tracking roadmap module. | No, remove for now |
+| Accounts | Policyholder and broker account management roadmap module. | No, remove for now |
+| Data Warehouse | Bulk exports, BI feeds, and model-training datasets roadmap module. | No, remove for now |
+
+### What each active tab supports
+
+- Dashboard: overview, queue snapshot, recent claims, and entry point to a new evaluation.
+- Claims Mgmt.: file upload, upload queue, remove-file controls, upload button, process button, and reset button.
+- Reports: search button, reset button, compare-selected button, and links into claim results.
+- Results: approve, reject, manual review, download PDF, and export JSON buttons.
+
 ### 5) Multi-modal ingestion flow
 
 ClaimSense works with several input modalities at once:
 
-```mermaid
-flowchart LR
-  C[Claim Form PDF / Image / Text] --> T[Text Extraction]
-  I[Invoice / Estimate PDF / Image / Text] --> T
-  P[Policy PDF / Image / Text] --> T
-  E[Optional Evidence Files] --> T
-  H[Optional Past Claims CSV] --> HX[Historical Context Builder]
-  T --> N[Normalize and Clean Text]
-  N --> J[Structured JSON Objects]
-  J --> RAG[Policy Retrieval and Clause Matching]
-  HX --> HX2[Behavioral and Frequency Signals]
-  RAG --> AGENTS[Agent Debate]
-  HX2 --> AGENTS
-  AGENTS --> OUT[Verdict, Risk Score, Fraud Probability, PDF Report]
+```
+Claim Form (PDF/Image/Text) -\
+Invoice/Estimate (PDF/Image/Text) --> Text Extraction --> Normalize Text
+Policy (PDF/Image/Text) -------/                           |
+Optional Evidence Files ------/                            v
+                                                  Structured JSON Objects
+Optional Past Claims CSV -> Historical Context -----> Behavioral Signals
+                                                        |
+Policy Retrieval (Hybrid RAG) -----> Agent Debate <----/
+                                        |
+                                        v
+                          Verdict, Risk Score, Fraud Probability, PDF Report
 ```
 
 ## 🧠 Detailed Data Flow
@@ -204,28 +174,21 @@ flowchart LR
 4. Files are stored under a claim-specific directory for traceability.
 5. Text extraction runs across claim, invoice, policy, and evidence inputs.
 6. Structured extraction converts unstructured text into normalized JSON payloads.
-7. Policy retrieval finds the most relevant contract excerpts for the current claim.
-8. The agent graph generates two competing arguments and a mediator conclusion.
+7. Hybrid RAG retrieves policy context (primary: graph-aware with knowledge graph, BM25, and vectors; fallback: simple vector).
+8. The multi-agent graph runs: Policy Analyst + Data Miner (parallel) -> Fraud Auditor -> Conditional Router -> Judge.
 9. Fraud, anomaly, and risk scorers convert the raw signals into reviewable scores.
 10. A report is rendered to PDF and linked back to the claim record.
 11. The frontend refreshes status, logs, and downloadable report state.
 12. The result stays auditable in PostgreSQL for later review and reporting.
 
-```mermaid
-flowchart TB
-  U[User] --> UI[Web UI]
-  UI --> UP[Upload Claim Package]
-  UP --> VAL[Validate Input]
-  VAL --> FS[Persist Files]
-  FS --> TXT[Extract Text]
-  TXT --> JSON[Structure Data]
-  JSON --> RET[Retrieve Policy Evidence]
-  RET --> DEC[Agent Decision Making]
-  DEC --> RISK[Fraud + Risk Scoring]
-  RISK --> REP[Generate PDF Report]
-  RISK --> DB[(PostgreSQL)]
-  REP --> UI
-  DB --> UI
+```
+User -> Web UI -> Upload Claim Package -> Validate Input
+  -> Persist Files -> Extract Text -> Structure Data
+  -> Retrieve Policy Evidence (Hybrid RAG: Graph-Aware / Vector+BM25 / Simple)
+  -> Agent Decision Making (Policy Analyst + Data Miner -> Fraud Auditor -> Judge)
+  -> Fraud + Risk Scoring
+  -> Generate PDF Report --> Web UI
+  -> PostgreSQL Audit Store --> Web UI
 ```
 
 For the full technical deep dive, see [MULTI_AGENT_ARCHITECTURE.md](MULTI_AGENT_ARCHITECTURE.md).
@@ -234,25 +197,16 @@ For the full technical deep dive, see [MULTI_AGENT_ARCHITECTURE.md](MULTI_AGENT_
 
 The README already mentions fraud scoring at a high level. This section adds the dedicated fraud-detection pipeline and shows how it fits inside the broader claim review flow.
 
-```mermaid
-flowchart TB
-  INPUT[Claim Data Input] --> CLAIM[Claim Data]
-  INPUT --> MARKET[Market Data & Vendor]
-  INPUT --> HISTORY[Historical Claims]
-
-  CLAIM --> ENGINE[FraudDetectionEngine]
-  MARKET --> ENGINE
-  HISTORY --> ENGINE
-
-  ENGINE --> PATTERN[PatternRecognizer]
-  ENGINE --> ANOMALY[AnomalyDetector]
-  ENGINE --> RISK[RiskScorer]
-
-  PATTERN --> SIGNALS[Fraud Signal List]
-  ANOMALY --> SIGNALS
-  RISK --> SIGNALS
-
-  SIGNALS --> RESULT[FraudDetectionResult]
+```
+Claim Data Input
+  -> Claim Data ------\
+  -> Market Data & Vendor --> FraudDetectionEngine
+  -> Historical Claims -/       |
+                                v
+            PatternRecognizer --+--> Fraud Signal List
+            AnomalyDetector   --/       |
+            RiskScorer        --+       v
+                                      FraudDetectionResult (verdict, risk score, fraud prob)
 ```
 
 ### Fraud detection components
@@ -315,7 +269,7 @@ flowchart TB
 | Prompt Utilities | LangChain Core | Prompt and chain utilities |
 | Integrations | LangChain Community | Additional integrations and helpers |
 | Orchestration | LangGraph | Multi-step agent workflow orchestration |
-| Retrieval | RAG service | Policy snippet matching and context retrieval |
+| Retrieval | Hybrid RAG service | Graph-aware hybrid RAG (vector + BM25 + knowledge graph) with simple fallback |
 
 ### 📊 Analytics and Fraud Stack
 
@@ -384,7 +338,9 @@ ClaimSense/
 - `app/api/claims.py`: handles uploads, processing, status, claim retrieval, comparison, and PDF download.
 - `app/services/document_parser.py`: extracts text from different file types.
 - `app/services/extraction.py`: converts raw text into structured claim data.
-- `app/services/rag_service.py`: retrieves policy excerpts relevant to the current case.
+- `app/services/rag_service.py`: vector and hybrid (vector+BM25) policy retrieval.
+- `app/services/policy_graph.py`: knowledge graph for clause extraction and relationship inference.
+- `app/services/hybrid_rag_service.py`: orchestrator that chooses graph-aware hybrid RAG (primary) or fallback methods.
 - `app/agents/graph.py`: runs the approve/reject/mediator workflow.
 - `app/services/risk_scoring.py`: turns mediator output into risk and fraud scores.
 - `app/services/report_pdf.py`: renders the final PDF report.
@@ -543,11 +499,12 @@ pytest tests/unit/test_fraud_detection.py
 2. Store the files and create a claim record.
 3. Extract text from claim, invoice, policy, and evidence documents.
 4. Convert each source into structured data.
-5. Retrieve policy snippets relevant to the claim scenario.
+5. Retrieve policy snippets using hybrid RAG (primary: graph-aware with knowledge graph, BM25, and vectors; fallback: simple vector-only).
 6. Run the multi-agent debate:
-   - approve argument
-   - reject argument
-   - mediator decision support
+   - Policy Analyst: checks policy wording, exclusions, limits, deductibles, clause relationships
+   - Data Miner: checks prior claims, customer history, frequency patterns, account behavior
+   - Fraud Auditor: checks inflated invoices, unusual timing, vendor mismatch, fraud signals
+   - Judge: synthesizes all agent outputs into a final recommendation and scores
 7. Compute fraud and risk indicators.
 8. Generate the final PDF report.
 9. Update the claim status and expose the result to the UI.
