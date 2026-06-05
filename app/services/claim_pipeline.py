@@ -8,8 +8,9 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db import crud
 from app.db.models import Claim
-from app.services import extraction, rag_service, report_pdf, risk_scoring
+from app.services import extraction, report_pdf, risk_scoring
 from app.services.document_parser import extract_text_auto
+from app.services.hybrid_rag_service import retrieve_policy_context
 from app.agents.graph import run_agent_graph
 
 
@@ -73,14 +74,21 @@ def process_claim(db: Session, claim_id: uuid.UUID) -> Claim:
         db.add(claim)
         db.commit()
 
-        _log(db, claim, "Matching policy clauses…")
-        index = rag_service.ingest_policy(claim.id, policy_text)
-        q = rag_service.build_rag_query(claim.structured_claim or {}, claim.structured_invoice or {})
-        chunks = rag_service.retrieve_relevant(index, q)
+        _log(db, claim, "Matching policy clauses (hybrid RAG)…")
+        hybrid_result = retrieve_policy_context(
+            policy_text=policy_text,
+            claim_context="",
+            structured_claim=claim.structured_claim or {},
+            structured_invoice=claim.structured_invoice or {},
+            k=6,
+        )
+        chunks = hybrid_result.chunks
         claim.rag_chunks = chunks
+        claim.rag_method_used = hybrid_result.method_used
+        claim.clause_relationships = hybrid_result.clause_relationships
         db.add(claim)
         db.commit()
-        _log(db, claim, f"Retrieved {len(chunks)} relevant policy excerpts.")
+        _log(db, claim, f"Retrieved {len(chunks)} relevant policy excerpts ({hybrid_result.method_used}).")
 
         _log(db, claim, "Running risk analysis…")
         agent_out = run_agent_graph(
