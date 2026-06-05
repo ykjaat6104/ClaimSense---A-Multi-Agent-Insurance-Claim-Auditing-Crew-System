@@ -24,7 +24,7 @@ ClaimSense is organized as four cooperating layers: the user interface, the API 
 ### 1) High-level system view
 
 ```mermaid
-flowchart LR
+flowchart TB
   U[Adjuster / Reviewer] --> W[React Web App]
   W -->|JWT + REST| API[FastAPI API Layer]
   API --> AUTH[Auth + Rate Limit]
