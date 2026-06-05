@@ -23,18 +23,21 @@ ClaimSense is organized as four cooperating layers: the user interface, the API 
 
 ### 1) High-level system view
 
-```
-Adjuster / Reviewer -> React Web App
-  -> FastAPI API Layer (JWT + REST)
-    -> Auth + Rate Limit
-    -> Claim Workflow Engine
-      -> Document Parsing & OCR
-      -> Structured Extraction
-      -> Policy Retrieval (Hybrid RAG)
-      -> Multi-Agent Claim Review
-      -> Risk + Fraud Scoring
-        -> PDF Report Builder --> Web UI
-        -> PostgreSQL Audit Store --> Web UI
+```mermaid
+flowchart LR
+  U[Adjuster / Reviewer] --> W[React Web App]
+  W -->|JWT + REST| API[FastAPI API Layer]
+  API --> AUTH[Auth + Rate Limit]
+  API --> PIPE[Claim Workflow Engine]
+  PIPE --> EX[Document Parsing & OCR]
+  EX --> STR[Structured Extraction]
+  STR --> RAG[Hybrid RAG]
+  RAG --> AG[Multi-Agent Claim Review]
+  AG --> SCORE[Risk + Fraud Scoring]
+  SCORE --> PDF[PDF Report Builder]
+  SCORE --> DB[(PostgreSQL Audit Store)]
+  PDF --> W
+  DB --> W
 ```
 
 ### 2) Layered architecture view
@@ -51,19 +54,33 @@ Services also write to: PostgreSQL, File Storage
 
 ### 3) Claim workflow sequence
 
-```
-Adjuster -> React UI: Sign in and upload claim package
-React UI -> FastAPI API: POST /api/upload-claim
-FastAPI API -> File Store: Save claim, invoice, policy, evidence
-FastAPI API -> Parser/OCR: Read and normalize source documents
-Parser/OCR -> Structured Extraction: Send raw text
-Structured Extraction -> Policy Retrieval: Build retrieval query
-Policy Retrieval -> Multi-Agent Graph: Provide relevant policy snippets
-Multi-Agent Graph -> Risk Scoring: Approve / Reject / Mediator output
-Risk Scoring -> PostgreSQL: Persist score, logs, and verdict data
-Risk Scoring -> PDF Renderer: Render final report
-PDF Renderer -> PostgreSQL: Store report path and status
-FastAPI API -> React UI: Return status, logs, and final result
+```mermaid
+sequenceDiagram
+  autonumber
+  actor Adjuster as Adjuster
+  participant Web as React UI
+  participant API as FastAPI API
+  participant Store as File Store
+  participant Parse as Parser/OCR
+  participant Extract as Structured Extraction
+  participant RAG as Hybrid RAG
+  participant Agents as Multi-Agent Graph
+  participant Score as Risk Scoring
+  participant DB as PostgreSQL
+  participant PDF as PDF Renderer
+
+  Adjuster->>Web: Sign in and upload claim package
+  Web->>API: POST /api/upload-claim
+  API->>Store: Save claim, invoice, policy, evidence
+  API->>Parse: Read and normalize source documents
+  Parse->>Extract: Send raw text
+  Extract->>RAG: Build hybrid retrieval query
+  RAG->>Agents: Provide relevant policy snippets (graph-aware / vector+BM25 / simple)
+  Agents->>Score: Policy Analyst + Data Miner -> Fraud Auditor -> Judge output
+  Score->>DB: Persist score, logs, and verdict data
+  Score->>PDF: Render final report
+  PDF->>DB: Store report path and status
+  API->>Web: Return status, logs, and final result
 ```
 
 ### 4) Multi-agent workflow and roles
