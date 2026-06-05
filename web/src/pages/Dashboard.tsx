@@ -79,6 +79,30 @@ export default function Dashboard() {
     </div>
   );
 
+  const navTasks = [
+    {
+      tab: "Dashboard",
+      work: "Portfolio overview, live queue snapshot, and risk posture.",
+      action: "Open recent claims or start a new evaluation.",
+    },
+    {
+      tab: "Claims Mgmt.",
+      work: "Upload claim, invoice, policy, and evidence files, then run the multi-agent pipeline.",
+      action: "Choose files, upload, process, and jump to results.",
+    },
+    {
+      tab: "Reports",
+      work: "Search historical claims, compare cases, and open claim reports.",
+      action: "Filter by claim ID, compare selected cases, and open report details.",
+    },
+    {
+      tab: "Result dashboard",
+      work: "Review agent output, approve/reject/manual-review, and export PDF or JSON.",
+      action: "Use the action buttons after a claim finishes processing.",
+      contextual: true,
+    },
+  ];
+
   return (
     <div>
       <h1 className="page-title">Dashboard</h1>
@@ -117,6 +141,34 @@ export default function Dashboard() {
             <strong style={{ color: "var(--yellow)" }}>{stats.avgFraud != null ? `${stats.avgFraud}%` : "—"}</strong>
           </p>
         </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: "1rem" }}>
+        <h2>Tab guide for the multi-agent workflow</h2>
+        <p className="page-sub" style={{ marginTop: 0 }}>
+          These are the tabs that currently do real work. The removed roadmap tabs were placeholders for future modules.
+        </p>
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Tab</th>
+              <th>What it does</th>
+              <th>Buttons / actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {navTasks.map((item) => (
+              <tr key={item.tab}>
+                <td>
+                  <strong>{item.tab}</strong>
+                  {item.contextual ? <div className="page-sub" style={{ margin: 0 }}>Contextual page, not in sidebar</div> : null}
+                </td>
+                <td>{item.work}</td>
+                <td>{item.action}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <div className="card" style={{ marginBottom: "1rem" }}>

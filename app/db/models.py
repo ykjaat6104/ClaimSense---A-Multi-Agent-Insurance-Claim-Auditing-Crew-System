@@ -29,6 +29,8 @@ class Claim(Base):
     past_claims_meta: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     rag_chunks: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    rag_method_used: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    clause_relationships: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     approve_argument: Mapped[str | None] = mapped_column(Text, nullable=True)
     reject_argument: Mapped[str | None] = mapped_column(Text, nullable=True)
     mediator_output: Mapped[dict | None] = mapped_column(JSON, nullable=True)
@@ -104,6 +106,8 @@ def claim_to_public_dict(c: Claim) -> dict[str, Any]:
         "past_claims_meta": c.past_claims_meta,
         "evidence_file_paths": c.evidence_file_paths,
         "rag_chunks": c.rag_chunks,
+        "rag_method_used": c.rag_method_used,
+        "clause_relationships": c.clause_relationships,
         "approve_argument": c.approve_argument,
         "reject_argument": c.reject_argument,
         "mediator_output": c.mediator_output,

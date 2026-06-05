@@ -202,6 +202,8 @@ def run_claim_audit_workflow(
         "policy_exclusions": [],
         "applicable_deductibles": 0,
         "rag_chunks": [],
+        "rag_method_used": "pending",
+        "clause_relationships": {},
         
         "customer_history": {},
         "claims_frequency": 0,

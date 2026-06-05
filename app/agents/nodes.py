@@ -64,12 +64,19 @@ def policy_analyst_node(state: ClaimAuditState) -> dict[str, Any]:
         
         rag_query = f"{damage_type} {claimed_amount} {coverage_requested}".strip()
         
-        # In production, this would query ChromaDB/FAISS
-        # For now, using the existing SimpleVectorIndex
-        from app.services.rag_service import ingest_policy, retrieve_relevant
+        # Hybrid RAG: graph-aware by default, falls back to hybrid vector, then simple vector
+        from app.services.hybrid_rag_service import retrieve_policy_context
         
-        vector_index = ingest_policy(state.get("claim_id"), policy_text)
-        rag_chunks = retrieve_relevant(vector_index, rag_query, k=6)
+        hybrid_result = retrieve_policy_context(
+            policy_text=policy_text,
+            claim_context=rag_query,
+            structured_claim=claim_details,
+            structured_invoice=invoice_details,
+            k=6,
+        )
+        rag_chunks = hybrid_result.chunks
+        rag_method_used = hybrid_result.method_used
+        clause_relationships = hybrid_result.clause_relationships
         
         # Extract coverage limits using LLM
         extraction_prompt = f"""Analyze this insurance policy and extract key coverage details for a {damage_type} claim.
@@ -108,6 +115,8 @@ Provide JSON:
             "policy_exclusions": coverage_data.get("exclusions", []),
             "applicable_deductibles": coverage_data.get("deductible", 0),
             "rag_chunks": rag_chunks,
+            "rag_method_used": rag_method_used,
+            "clause_relationships": clause_relationships or {},
         }
         
         logger.info(f"[Policy Analyst] Completed analysis. Found {len(rag_chunks)} relevant chunks.")
@@ -121,6 +130,8 @@ Provide JSON:
             "policy_exclusions": [],
             "applicable_deductibles": 0,
             "rag_chunks": [],
+            "rag_method_used": "failed",
+            "clause_relationships": {},
         }
 
 

@@ -53,6 +53,8 @@ class ClaimAuditState(TypedDict, total=False):
     policy_exclusions: list[str]
     applicable_deductibles: dict[str, Any]
     rag_chunks: list[str]
+    rag_method_used: str  # "hybrid_graph", "hybrid_vector", "simple_fallback", "failed"
+    clause_relationships: dict[str, Any]  # graph edges and coverage-exclusion pairs
     
     # ========== PHASE 2: DATA MINER OUTPUT ==========
     customer_history: dict[str, Any]

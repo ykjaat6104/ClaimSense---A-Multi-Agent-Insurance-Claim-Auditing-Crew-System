@@ -4,10 +4,6 @@ import { clearToken } from "../api";
 const nav = [
   { to: "/", label: "Dashboard", end: true, icon: "home" },
   { to: "/claims-mgmt", label: "Claims Mgmt.", icon: "doc" },
-  { to: "/cats", label: "CATs", icon: "bolt" },
-  { to: "/expenses", label: "Expenses", icon: "rupee" },
-  { to: "/accounts", label: "Accounts", icon: "user" },
-  { to: "/data-warehouse", label: "Data Warehouse", icon: "cloud" },
   { to: "/reports", label: "Reports", icon: "report" },
 ] as const;
 
