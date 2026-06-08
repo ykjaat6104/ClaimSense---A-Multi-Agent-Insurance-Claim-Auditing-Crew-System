@@ -212,10 +212,11 @@ For the full technical deep dive on agents, fraud detection, and architecture, s
 
 | Component | Technology | Purpose |
 |---|---|---|
-| Containerization | Docker | Containerized runtime packaging |
+| Containerization | Docker / Railway | Containerized runtime packaging |
 | Configuration | Environment variables | Environment-specific configuration |
 | Observability | Health endpoint | Service and database readiness checks |
 | Local Dev | `.env` + Vite proxy | Fast local workflow with backend proxying |
+| Deployment | Railway | Multi-service cloud deployment |
 
 ### ✅ Quality and Testing Stack
 
@@ -248,7 +249,7 @@ ClaimSense/
 ├── samples/             # Example claim and policy documents
 ├── tests/               # Unit, integration, and e2e test scaffolding
 ├── requirements.txt     # Python dependencies
-├── deploy.sh            # Production bootstrap helper
+├── railway.json          # Railway project configuration
 ├── LICENSE              # MIT License
 └── README.md            # You are here
 ```
@@ -426,70 +427,83 @@ pytest tests/unit/test_fraud_detection.py
 - Production deployments should use a strong `CLAIMSENSE_AUTH_SECRET` and a secure `DATABASE_URL`.
 - Gemini-backed reasoning is assistive, not authoritative.
 
-## 🚀 One-click Deploy (GitHub Codespaces + Cloudflare Tunnel)
+## 🚀 Deploy on Railway (Free Tier)
 
-Deploy a full Celery + Redis stack with a public URL — free, no credit card needed, no local machine required.
+Deploy the full stack (backend + Celery worker + frontend + Redis) on Railway's free tier — no credit card required at signup.
 
-### Quick start
+### Prerequisites
 
-```bash
-# 1. Open the repo in GitHub Codespaces
-#    (GitHub → Code → Codespaces → Create codespace)
+- A [Railway](https://railway.app/) account (sign in with GitHub)
+- Your repo pushed to GitHub
+- A [Gemini API key](https://aistudio.google.com/app/apikey)
 
-# 2. Set API keys
-cp .env.example .env
-# Edit .env: set GEMINI_API_KEY and TAVILY_API_KEY
+### Step-by-step
 
-# 3. Launch the whole stack
-docker compose up -d
+#### 1. Create a Railway project
 
-# 4. Get the public URL
-docker compose logs tunnel | grep -o 'https://[a-z0-9]*\.trycloudflare\.com'
-# → https://abc123.trycloudflare.com   ← share this with anyone
+1. Go to [Railway dashboard](https://railway.app/dashboard) → **New Project** → **Deploy from GitHub**
+2. Select your ClaimSense repo
+3. Railway will detect the `railway.json` config
+
+#### 2. Add 3 services from the same repo
+
+In your Railway project dashboard, add these services:
+
+| Service | Root Directory | Dockerfile | Start Command |
+|---------|---------------|------------|---------------|
+| **backend** | `/` | `Dockerfile` | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| **celery_worker** | `/` | `Dockerfile` | `celery -A app.services.celery_tasks worker --loglevel=info` |
+| **frontend** | `web` | `web/Dockerfile` | *(default nginx CMD)* |
+
+**How to add services:**
+- Click **New** → **Add a Service** → select the same GitHub repo
+- Set the **Root Directory** field (e.g. `web` for frontend)
+- Set **Start Command** for each service
+
+#### 3. Add the Redis plugin
+
+- Click **New** → **Plugin** → **Redis**
+- Railway auto-injects `REDIS_URL` as an env var
+
+#### 4. Set environment variables
+
+Go to each service's **Variables** tab and add:
+
+| Variable | Value | Required |
+|----------|-------|----------|
+| `ENVIRONMENT` | `production` | ✅ |
+| `DATABASE_URL` | `sqlite:///./claimsense.db` (or Railway PostgreSQL) | ✅ |
+| `GEMINI_API_KEY` | `your-gemini-api-key` | ✅ |
+| `CLAIMSENSE_AUTH_SECRET` | `python -c "import secrets; print(secrets.token_urlsafe(32))"` | ✅ |
+| `CLAIMSENSE_DEMO_PASSWORD` | `choose-a-strong-password` | ✅ |
+| `CELERY_BROKER_URL` | `${{ REDIS_URL }}` | ✅ |
+| `CELERY_RESULT_BACKEND` | `${{ REDIS_URL }}` | ✅ |
+| `CORS_ORIGINS` | `https://frontend-*.up.railway.app` | ✅ |
+| `BACKEND_URL` (frontend service only) | `${{ backend.RAILWAY_PUBLIC_DOMAIN }}` | ✅ |
+
+Railway supports template variables — use `${{ REDIS_URL }}` to reference the Redis plugin's URL, and `${{ backend.RAILWAY_PUBLIC_DOMAIN }}` for the backend's public URL in the `BACKEND_URL` var on the frontend service.
+
+### Architecture on Railway
+
 ```
-
-### Architecture
-
-```
-User ──► https://*.trycloudflare.com
+User ──► https://frontend-xxxx.up.railway.app
                     │
-           cloudflared tunnel
-                    │
-          Nginx (frontend :80)
-           │        │
-        static    /api/* ──► FastAPI (backend :8000)
-        SPA                          │
-                                     ├── Redis (Celery broker)
-                                     └── SQLite (persisted in Docker volume)
+            Nginx (frontend — BACKEND_URL env var)
+           │            │
+        static      /api/* ──► https://backend-xxxx.up.railway.app (private network)
+        SPA                              │
+                                          ├── Redis (Celery broker)
+                                          └── SQLite / PostgreSQL
 ```
 
-### What you get
+The frontend nginx proxies `/api/*` and `/health` requests to the backend using the `BACKEND_URL` environment variable. Set it in the frontend service as `${{ backend.RAILWAY_PUBLIC_DOMAIN }}` — Railway injects the backend's public URL automatically.
 
-| Service | What it does |
-|---|---|
-| `backend` | FastAPI + Uvicorn on port 8000 |
-| `celery_worker` | Celery worker processing claim audits in background |
-| `frontend` | Nginx serving the built React SPA, proxying APIs |
-| `redis` | In-memory queue broker for Celery |
-| `tunnel` | Cloudflare Tunnel → public `trycloudflare.com` URL |
+### Important notes
 
-### Data persistence
-
-The `claimsense_data` Docker volume (mapped to `/app/data`) stores the SQLite database, uploads, and reports. It survives codespace restarts — just run `docker compose up -d` again to resume where you left off.
-
-### Stopping & resuming
-
-```bash
-docker compose down            # stop everything
-docker compose up -d           # start again — data intact
-docker compose down -v         # ⚠️ destroy data too
-```
-
-### Manual tunnel (without docker-compose)
-
-```bash
-docker run cloudflare/cloudflared tunnel --url http://localhost:80
-```
+- **Persistent storage**: SQLite files are ephemeral on Railway. For production, add the **PostgreSQL plugin** and set `DATABASE_URL` to the Railway Postgres connection string.
+- **Free tier limits**: Railway free plan includes $5-10 credit/month — sufficient for low-traffic demo use. Each service costs ~$0.00023/hour.
+- **Logs**: View logs per service in the Railway dashboard under **Deployments** → **View Logs**.
+- **Custom domains**: Upgrade to add a custom domain later.
 
 ## 🤝 Contributing
 

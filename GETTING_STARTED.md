@@ -26,19 +26,12 @@ You've been provided with a **production-ready** version of ClaimSense. Here's w
 
 ## Quick Start (< 5 minutes)
 
-### Option 1: Using Deployment Script (Recommended)
+### Using Docker Compose (Local)
 ```bash
-./deploy.sh
+docker compose up -d
 ```
-This script will:
-1. Verify Docker/Docker Compose
-2. Create `.env` file
-3. Generate secure secrets
-4. Prompt for configuration
-5. Start all services
-6. Verify health
 
-### Option 2: Manual Deployment
+### Manual Deployment
 ```bash
 # 1. Copy environment template
 cp .env.example .env
@@ -264,7 +257,7 @@ docker-compose config | grep DATABASE_URL
 
 ### Deploy to Server
 1. Prepare secrets and environment
-2. Run `./deploy.sh` or `docker-compose up -d`
+2. Run `docker compose up -d`
 3. Verify with `curl http://localhost:8000/health`
 4. Test with actual user workflow
 5. Set up monitoring and backups
@@ -334,9 +327,7 @@ docker-compose up -d
 
 1. **Start Services**
    ```bash
-   ./deploy.sh
-   # or
-   docker-compose up -d
+   docker compose up -d
    ```
 
 2. **Verify Health**

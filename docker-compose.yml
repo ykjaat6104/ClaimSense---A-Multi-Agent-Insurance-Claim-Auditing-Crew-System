@@ -55,6 +55,8 @@ services:
       - backend
     ports:
       - "80:80"
+    environment:
+      - BACKEND_URL=http://backend:8000
     restart: unless-stopped
 
   tunnel:
