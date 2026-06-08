@@ -2,16 +2,26 @@ import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getStatus, startProcess, uploadClaimWithProgress } from "../api";
 
-type RowState = {
-  key: string;
-  label: string;
-  file: File | null;
-};
-
 function fmtSize(n: number) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function orderLabel(i: number) {
+  const labels = ["1st", "2nd", "3rd", "4th", "5th"];
+  return labels[i] || `${i + 1}th`;
+}
+
+type SlotKey = "claim" | "invoice" | "policy";
+const SLOT_ORDER: SlotKey[] = ["claim", "invoice", "policy"];
+
+function detectSlot(filename: string): SlotKey | null {
+  const lower = filename.toLowerCase();
+  if (lower.includes("claim")) return "claim";
+  if (lower.includes("invoice") || lower.includes("inv_") || lower.includes("inv-") || lower.includes("bill") || lower.includes("receipt")) return "invoice";
+  if (lower.includes("policy")) return "policy";
+  return null;
 }
 
 export default function ClaimsMgmt() {
@@ -19,7 +29,7 @@ export default function ClaimsMgmt() {
   const [claim, setClaim] = useState<File | null>(null);
   const [invoice, setInvoice] = useState<File | null>(null);
   const [policy, setPolicy] = useState<File | null>(null);
-  const [past, setPast] = useState<File | null>(null);
+  const [extra, setExtra] = useState<File[]>([]);
   const [evidence, setEvidence] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -30,31 +40,58 @@ export default function ClaimsMgmt() {
   const [statusLine, setStatusLine] = useState("");
   const [logs, setLogs] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  const evRef = useRef<HTMLInputElement>(null);
 
-  const rows: RowState[] = [
-    { key: "claim", label: "Claim form", file: claim },
-    { key: "invoice", label: "Invoice / bill", file: invoice },
-    { key: "policy", label: "Policy document", file: policy },
-    ...evidence.map((f, i) => ({
-      key: `ev-${i}`,
-      label: `Evidence ${i + 1}`,
-      file: f,
-    })),
-  ];
+  function assignFiles(files: FileList | File[], targetEvidence = false) {
+    const fs = Array.from(files);
+    if (!fs.length) return;
+
+    if (targetEvidence) {
+      setEvidence((prev) => [...prev, ...fs].slice(0, 5));
+      return;
+    }
+
+    let c = claim;
+    let i = invoice;
+    let p = policy;
+    let ex = [...extra];
+
+    for (const f of fs) {
+      const detected = detectSlot(f.name);
+      let assigned = false;
+
+      if (detected === "claim" && !c) { c = f; assigned = true; }
+      else if (detected === "invoice" && !i) { i = f; assigned = true; }
+      else if (detected === "policy" && !p) { p = f; assigned = true; }
+
+      if (!assigned) {
+        if (!c) c = f;
+        else if (!i) i = f;
+        else if (!p) p = f;
+        else if (ex.length < 5) ex = [...ex, f];
+      }
+    }
+
+    setClaim(c);
+    setInvoice(i);
+    setPolicy(p);
+    setExtra(ex);
+  }
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragOver(false);
-      const f = e.dataTransfer.files[0];
-      if (!f) return;
-      if (!claim) setClaim(f);
-      else if (!invoice) setInvoice(f);
-      else if (!policy) setPolicy(f);
-      else setEvidence((prev) => [...prev, f].slice(0, 5));
+      assignFiles(e.dataTransfer.files);
     },
-    [claim, invoice, policy]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [claim, invoice, policy, extra]
   );
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    assignFiles(e.target.files || []);
+    e.target.value = "";
+  }
 
   function buildFormData(): FormData {
     if (!claim || !invoice || !policy) throw new Error("Missing required documents");
@@ -62,7 +99,7 @@ export default function ClaimsMgmt() {
     fd.append("claim", claim);
     fd.append("invoice", invoice);
     fd.append("policy", policy);
-    if (past) fd.append("past_claims", past);
+    extra.slice(0, 5).forEach((f, i) => fd.append(`other_${i + 1}`, f));
     evidence.slice(0, 5).forEach((f, i) => fd.append(`evidence_${i + 1}`, f));
     return fd;
   }
@@ -138,14 +175,39 @@ export default function ClaimsMgmt() {
     else if (key.startsWith("ev-")) {
       const i = parseInt(key.split("-")[1], 10);
       setEvidence((prev) => prev.filter((_, j) => j !== i));
+    } else if (key.startsWith("ex-")) {
+      const i = parseInt(key.split("-")[1], 10);
+      setExtra((prev) => prev.filter((_, j) => j !== i));
     }
   }
+
+  function firstThree(): { key: SlotKey; label: string; file: File | null; order: number; matched: boolean }[] {
+    const filled: SlotKey[] = [];
+    for (const k of SLOT_ORDER) {
+      const f = k === "claim" ? claim : k === "invoice" ? invoice : policy;
+      if (f) filled.push(k);
+    }
+    return SLOT_ORDER.map((k) => {
+      const f = k === "claim" ? claim : k === "invoice" ? invoice : policy;
+      return {
+        key: k,
+        label: k === "claim" ? "Claim form" : k === "invoice" ? "Invoice / bill" : "Policy document",
+        file: f,
+        order: f ? filled.indexOf(k) + 1 : 0,
+        matched: f ? detectSlot(f.name) === k : false,
+      };
+    });
+  }
+
+  const requiredRows = firstThree();
+  const requiredFilled = [claim, invoice, policy].filter(Boolean).length;
 
   return (
     <div>
       <h1 className="page-title">Claims management</h1>
       <p className="page-sub">
         Upload PDFs, images, or text — policy, claim, invoices, and optional evidence. Drag & drop or browse (max 25 MB per file).
+        <br />Files are matched to slots by filename (<em>claim</em>, <em>invoice</em>, <em>policy</em>), then fill remaining required slots in order.
       </p>
       {err ? <div className="flash flash-err">{err}</div> : null}
 
@@ -180,39 +242,57 @@ export default function ClaimsMgmt() {
               </div>
               <div style={{ fontWeight: 600, marginBottom: "0.35rem" }}>Drag files to upload</div>
               <p className="page-sub" style={{ margin: "0 0 1rem" }}>
-                Files fill <strong>claim → invoice → policy</strong> first, then attach up to five evidence documents.
+                Files are smart-matched to <strong>claim</strong>, <strong>invoice</strong>, <strong>policy</strong> slots by filename, then overflow to <strong>extra docs</strong>.
               </p>
-              <input ref={fileRef} type="file" multiple style={{ display: "none" }} onChange={(e) => {
-                const fs = Array.from(e.target.files || []);
-                for (const f of fs) {
-                  if (!claim) setClaim(f);
-                  else if (!invoice) setInvoice(f);
-                  else if (!policy) setPolicy(f);
-                  else setEvidence((p) => [...p, f].slice(0, 5));
-                }
-                e.target.value = "";
-              }} />
+              <input
+                ref={fileRef}
+                type="file"
+                multiple
+                style={{ display: "none" }}
+                onChange={onFileChange}
+              />
               <button type="button" className="btn-green" onClick={() => fileRef.current?.click()}>
                 Choose files
               </button>
             </div>
 
             <div className="upload-queue">
-              <h3>Upload queue</h3>
-              {rows.map((r) => (
-                <div key={r.key} className="queue-row">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                <h3 style={{ margin: 0 }}>Upload queue</h3>
+                <span className="queue-count">
+                  {requiredFilled < 3 ? (
+                    <span className="req-warn">{requiredFilled}/3 required</span>
+                  ) : (
+                    <span className="req-ok">3/3 required ✓</span>
+                  )}
+                </span>
+              </div>
+
+              {requiredRows.map((r) => (
+                <div key={r.key} className={"queue-row" + (r.file ? " row-filled" : "")}>
                   <div className="queue-row-top">
-                    <div>
-                      <div className="queue-name">{r.label}</div>
-                      <div className="queue-meta">
-                        {r.file ? `${r.file.name} · ${fmtSize(r.file.size)}` : "Not selected"}
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <div>
+                        <div className="queue-name">
+                          {r.label}
+                          <span className="req-dot">*</span>
+                        </div>
+                        <div className="queue-meta">
+                          {r.file ? `${r.file.name} · ${fmtSize(r.file.size)}` : "Not selected"}
+                        </div>
                       </div>
                     </div>
-                    {r.file ? (
-                      <button type="button" className="queue-cancel" aria-label="Remove" onClick={() => clearSlot(r.key)}>
-                        ×
-                      </button>
-                    ) : null}
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                      {r.file ? <span className="order-badge">{orderLabel(r.order - 1)}</span> : null}
+                      {r.file && !r.matched ? (
+                        <span className="mismatch-badge" title="Filename didn't match this slot — placed here by order">?</span>
+                      ) : null}
+                      {r.file ? (
+                        <button type="button" className="queue-cancel" aria-label="Remove" onClick={() => clearSlot(r.key)}>
+                          ×
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="progress-track">
                     <div
@@ -233,9 +313,71 @@ export default function ClaimsMgmt() {
                 </div>
               ))}
 
+              <div className={"queue-row" + (extra.length ? " row-filled" : "")}>
+                <div className="queue-row-top">
+                  <div>
+                    <div className="queue-name">Extra docs</div>
+                    <div className="queue-meta">
+                      {extra.length ? `${extra.length} file${extra.length > 1 ? "s" : ""} selected` : "Optional — overflow from main slots"}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                    {extra.length ? <span className="order-badge extra-badge">{extra.length}/5</span> : null}
+                    {extra.length ? (
+                      <button type="button" className="queue-cancel" aria-label="Clear extra" onClick={() => setExtra([])}>
+                        ×
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+                {extra.length > 0 ? (
+                  <div className="file-list">
+                    {extra.map((f, i) => (
+                      <span key={i} className="file-tag">
+                        {f.name}
+                        <button type="button" className="queue-cancel" onClick={() => clearSlot(`ex-${i}`)}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className={"queue-row" + (evidence.length ? " row-filled" : "")}>
+                <div className="queue-row-top">
+                  <div>
+                    <div className="queue-name">Evidence</div>
+                    <div className="queue-meta">
+                      {evidence.length ? `${evidence.length} file${evidence.length > 1 ? "s" : ""} selected` : "Optional — add evidence separately"}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                    {evidence.length ? <span className="order-badge extra-badge">{evidence.length}/5</span> : null}
+                  </div>
+                </div>
+                {evidence.length > 0 ? (
+                  <div className="file-list">
+                    {evidence.map((f, i) => (
+                      <span key={i} className="file-tag">
+                        {f.name}
+                        <button type="button" className="queue-cancel" onClick={() => clearSlot(`ev-${i}`)}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                <div style={{ marginTop: "0.45rem" }}>
+                  <input ref={evRef} type="file" multiple style={{ display: "none" }} onChange={(e) => {
+                    assignFiles(e.target.files || [], true);
+                    e.target.value = "";
+                  }} />
+                  <button type="button" className="btn-ghost" style={{ fontSize: "0.78rem", padding: "0.3rem 0.65rem" }} onClick={() => evRef.current?.click()}>
+                    + Add evidence files
+                  </button>
+                </div>
+              </div>
+
               <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                 {phase === "pick" ? (
-                  <button type="button" className="btn-yellow" disabled={busy} onClick={doUpload}>
+                  <button type="button" className="btn-yellow" disabled={!requiredFilled || busy} onClick={doUpload}>
                     {busy ? "Uploading…" : "Upload to server"}
                   </button>
                 ) : (
@@ -253,7 +395,7 @@ export default function ClaimsMgmt() {
                         setClaim(null);
                         setInvoice(null);
                         setPolicy(null);
-                        setPast(null);
+                        setExtra([]);
                         setEvidence([]);
                         setErr(null);
                         setUpPct(0);
@@ -270,12 +412,6 @@ export default function ClaimsMgmt() {
                 </p>
               ) : null}
             </div>
-          </div>
-
-          <div className="card" style={{ marginTop: "1rem" }}>
-            <h2>Optional: past claims CSV</h2>
-            <input type="file" accept=".csv,.txt" onChange={(e) => setPast(e.target.files?.[0] || null)} />
-            {past ? <p className="page-sub">{past.name}</p> : null}
           </div>
         </>
       )}

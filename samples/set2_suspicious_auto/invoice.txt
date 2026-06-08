@@ -1,0 +1,18 @@
+INVOICE — Alamo Collision Center LLC
+Invoice No: INV-2026-0312
+Date: 2026-03-12
+Vehicle: 2023 Toyota Camry (VIN: 4T1BD1FK8PU123456)
+
+Line Items:
+- Front bumper assembly replacement (OEM): $3,800.00
+- Passenger door shell and trim (OEM): $2,900.00
+- Side mirror assembly with blind spot (OEM): $1,200.00
+- Airbag module and sensor replacement: $4,500.00
+- Paint and labor (blend adjacent panels): $1,800.00
+- Alignment and diagnostics: $800.00
+
+Subtotal: $15,000.00
+Shop Supplies and Tax: $0.00
+Total: USD $15,000.00
+
+Note: Additional damage found during teardown — supplement may be required.

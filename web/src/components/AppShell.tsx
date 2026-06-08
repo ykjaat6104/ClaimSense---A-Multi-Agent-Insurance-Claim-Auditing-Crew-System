@@ -1,13 +1,14 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { clearToken } from "../api";
 
-const nav = [
+const nav: { to: string; label: string; end?: boolean; icon: string }[] = [
   { to: "/", label: "Dashboard", end: true, icon: "home" },
   { to: "/claims-mgmt", label: "Claims Mgmt.", icon: "doc" },
+  { to: "/results", label: "Results", icon: "chart" },
   { to: "/reports", label: "Reports", icon: "report" },
-] as const;
+];
 
-function Icon({ name }: { name: (typeof nav)[number]["icon"] }) {
+function Icon({ name }: { name: string }) {
   const stroke = "currentColor";
   const o = { width: 20, height: 20, fill: "none", strokeWidth: 1.6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   switch (name) {
@@ -47,6 +48,14 @@ function Icon({ name }: { name: (typeof nav)[number]["icon"] }) {
       return (
         <svg {...o} viewBox="0 0 24 24">
           <path stroke={stroke} d="M7 18h11a4 4 0 0 0 0-8 1 1 0 0 0-1-1 5 5 0 0 0-9.7 1.7A3.5 3.5 0 0 0 7 18z" />
+        </svg>
+      );
+    case "chart":
+      return (
+        <svg {...o} viewBox="0 0 24 24">
+          <rect stroke={stroke} x="4" y="14" width="4" height="6" rx="1" />
+          <rect stroke={stroke} x="10" y="10" width="4" height="10" rx="1" />
+          <rect stroke={stroke} x="16" y="6" width="4" height="14" rx="1" />
         </svg>
       );
     case "report":

@@ -1,0 +1,32 @@
+AUTO PACKAGE POLICY — POL-AUTO-2026
+Effective Date: 2026-03-01
+Expiry Date: 2027-02-28
+Named Insured: Sarah Chen
+Vehicle: 2023 Toyota Camry
+
+SECTION A — COLLISION COVERAGE ($20,000 limit)
+Covers damage to the insured vehicle resulting from collision with another object, vehicle, or overturn. Subject to applicable deductible.
+
+DEDUCTIBLE: $1,000 per claim (Collision)
+
+SECTION B — COMPREHENSIVE COVERAGE ($20,000 limit)
+Covers theft, vandalism, fire, flood, hail, animal collision, and falling objects.
+
+SECTION C — THIRD PARTY LIABILITY ($100,000 per accident)
+Bodily injury and property damage liability.
+
+COVERAGE LIMITS:
+- Collision: $20,000
+- Comprehensive: $20,000
+- Liability: $100,000
+
+EXCLUSIONS:
+- Intentional damage
+- Mechanical failure
+- Racing or track events
+- Normal wear and tear
+- Driving without valid license
+- Commercial use not disclosed
+
+CLAIM PROCEDURE:
+Report within 24 hours. Obtain two repair estimates. Approved shop may perform work directly.

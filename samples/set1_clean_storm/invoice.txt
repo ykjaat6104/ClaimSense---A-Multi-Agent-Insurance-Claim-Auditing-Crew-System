@@ -1,0 +1,18 @@
+INVOICE — Austin Peak Roofing & Construction LLC
+Invoice No: INV-2026-0891
+Date: 2026-03-18
+Property: 42 Oakwood Drive, Austin, TX 78701
+
+Line Items:
+- Roof shingle replacement (architectural asphalt): $4,200.00
+- Underlayment and ice & water shield: $1,100.00
+- Fascia board repair and painting: $850.00
+- Interior drywall repair and texture match: $1,200.00
+- Insulation replacement (R-30 blown): $650.00
+- Debris removal and disposal: $500.00
+
+Subtotal: $8,500.00
+Tax: $0.00
+Total: USD $8,500.00
+
+Payment Terms: Net 30 days upon receipt

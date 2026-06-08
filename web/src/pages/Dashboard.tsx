@@ -87,8 +87,13 @@ export default function Dashboard() {
     },
     {
       tab: "Claims Mgmt.",
-      work: "Upload claim, invoice, policy, and evidence files, then run the multi-agent pipeline.",
+      work: "Upload claim, invoice, policy, evidence, and extra docs, then run the multi-agent pipeline.",
       action: "Choose files, upload, process, and jump to results.",
+    },
+    {
+      tab: "Results",
+      work: "Browse completed evaluations and export reports as PDF, JSON, or DOCX.",
+      action: "Open a claim report or export from the list.",
     },
     {
       tab: "Reports",
@@ -97,7 +102,7 @@ export default function Dashboard() {
     },
     {
       tab: "Result dashboard",
-      work: "Review agent output, approve/reject/manual-review, and export PDF or JSON.",
+      work: "Review agent output, approve/reject/manual-review per claim.",
       action: "Use the action buttons after a claim finishes processing.",
       contextual: true,
     },

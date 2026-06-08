@@ -12,6 +12,7 @@ from app.db import crud
 from app.db.models import claim_summary_dict, claim_to_public_dict
 from app.schemas.api import AdjusterActionRequest, ClaimUploadResponse, ProcessResponse
 from app.services.jobs import run_claim_pipeline_job
+from app.services.report_docx import build_docx_report
 
 router = APIRouter()
 
@@ -85,6 +86,11 @@ async def upload_claim(
     evidence_3: UploadFile | None = File(None),
     evidence_4: UploadFile | None = File(None),
     evidence_5: UploadFile | None = File(None),
+    other_1: UploadFile | None = File(None, description="Optional extra document"),
+    other_2: UploadFile | None = File(None),
+    other_3: UploadFile | None = File(None),
+    other_4: UploadFile | None = File(None),
+    other_5: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     _username: str = Depends(get_current_username),
 ) -> ClaimUploadResponse:
@@ -101,6 +107,7 @@ async def upload_claim(
     base = settings.upload_dir / str(cid)
     pcsv: str | None = None
     ev_paths: list[str] = []
+    other_paths: list[str] = []
     try:
         c_bytes = await _read_limited(claim)
         i_bytes = await _read_limited(invoice)
@@ -131,6 +138,21 @@ async def upload_claim(
                         base / f"evidence_{idx}_{_sanitize_filename(ev.filename)}", raw_ev
                     )
                 )
+        for idx, ot in enumerate(
+            (other_1, other_2, other_3, other_4, other_5), start=1
+        ):
+            if ot and ot.filename:
+                suf = Path(ot.filename).suffix.lower()
+                if suf and suf not in allowed:
+                    raise HTTPException(
+                        status_code=400, detail=f"other_{idx}: unsupported type {suf}"
+                    )
+                raw_ot = await _read_limited(ot)
+                other_paths.append(
+                    crud.save_upload(
+                        base / f"other_{idx}_{_sanitize_filename(ot.filename)}", raw_ot
+                    )
+                )
     except HTTPException:
         raise
     except Exception as e:  # noqa: BLE001
@@ -144,6 +166,7 @@ async def upload_claim(
         policy_path=pp,
         past_claims_csv_path=pcsv,
         evidence_file_paths=ev_paths if ev_paths else None,
+        other_file_paths=other_paths if other_paths else None,
     )
     return ClaimUploadResponse(claim_id=str(c.id), status=c.status)
 
@@ -238,6 +261,25 @@ def legacy_get_report(
     _username: str = Depends(get_current_username),
 ) -> JSONResponse:
     return get_claim_detail(claim_id, db, _username)
+
+
+@router.get("/claims/{claim_id}/docx")
+def get_claim_docx(
+    claim_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    _username: str = Depends(get_current_username),
+) -> FileResponse:
+    c = crud.get_claim(db, claim_id)
+    if not c:
+        raise HTTPException(status_code=404, detail="Claim not found")
+    if c.status != "completed":
+        raise HTTPException(status_code=400, detail="Claim analysis must be completed first.")
+    reports_dir = Path("reports")
+    reports_dir.mkdir(exist_ok=True)
+    dest = reports_dir / f"{claim_id}_report.docx"
+    if not dest.is_file():
+        build_docx_report(c, dest)
+    return FileResponse(str(dest), filename=f"claimsense_report_{claim_id}.docx", media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
 
 @router.get("/claims/{claim_id}/pdf")

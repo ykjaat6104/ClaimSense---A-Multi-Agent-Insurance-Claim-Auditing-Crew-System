@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { adjusterAction, downloadPdf, getReport } from "../api";
+import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
+import { adjusterAction, getReport } from "../api";
 
 type Report = {
   id: string;
@@ -23,6 +24,21 @@ function pillClass(d: string | null) {
   if (x === "APPROVE") return "pill pill-approve";
   if (x === "REJECT") return "pill pill-reject";
   return "pill pill-review";
+}
+
+function riskColor(score: number | null) {
+  if (score == null) return "#9a9aaa";
+  if (score < 35) return "#4caf50";
+  if (score < 65) return "#ffcc00";
+  return "#f44336";
+}
+
+function gaugeColor(val: number | null) {
+  if (val == null) return "#9a9aaa";
+  if (val < 25) return "#4caf50";
+  if (val < 50) return "#ffcc00";
+  if (val < 75) return "#ff9800";
+  return "#f44336";
 }
 
 export default function Results() {
@@ -69,17 +85,6 @@ export default function Results() {
     }
   }
 
-  function exportJson() {
-    if (!data) return;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `claimsense_${data.id}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   if (err) {
     return (
       <div>
@@ -112,6 +117,17 @@ export default function Results() {
     );
   }
 
+  const riskBarData = [
+    { name: "Risk score", value: data.risk_score ?? 0, full: 100 },
+    { name: "Fraud probability", value: data.fraud_probability ?? 0, full: 100 },
+  ];
+
+  const gaugeData = [
+    { name: "Fraud probability", value: data.fraud_probability ?? 0 },
+    { name: "Remaining", value: 100 - (data.fraud_probability ?? 0) },
+  ];
+  const gColor = gaugeColor(data.fraud_probability);
+
   return (
     <div>
       <p>
@@ -140,6 +156,54 @@ export default function Results() {
           <div className="score-block">
             <span>Fraud probability</span>
             <strong>{data.fraud_probability != null ? `${data.fraud_probability}%` : "—"}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <h2>Charts & metrics</h2>
+        <div className="charts-grid">
+          <div className="chart-box">
+            <span className="chart-label">Risk score (0–100)</span>
+            <ResponsiveContainer width="100%" height={80}>
+              <BarChart data={riskBarData} layout="vertical" margin={{ top: 0, right: 20, bottom: 0, left: 10 }}>
+                <XAxis hide type="number" domain={[0, 100]} />
+                <YAxis hide type="category" />
+                <Tooltip
+                  contentStyle={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, fontSize: 12 }}
+                  formatter={(val) => [`${val}`, ""]}
+                />
+                <Bar dataKey="value" fill={riskColor(data.risk_score)} radius={[4, 4, 4, 4]} barSize={24} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="chart-box">
+            <span className="chart-label">Fraud probability</span>
+            <ResponsiveContainer width="100%" height={100}>
+              <PieChart>
+                <Pie
+                  data={gaugeData}
+                  cx="50%"
+                  cy="50%"
+                  startAngle={180}
+                  endAngle={0}
+                  innerRadius={30}
+                  outerRadius={42}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  <Cell fill={gColor} />
+                  <Cell fill="#2a2a2a" />
+                </Pie>
+                <Tooltip
+                  contentStyle={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, fontSize: 12 }}
+                  formatter={(val) => [`${val}%`, "Fraud probability"]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div style={{ textAlign: "center", fontSize: "1.1rem", fontWeight: 700, marginTop: "-0.5rem" }}>
+              {data.fraud_probability ?? "—"}%
+            </div>
           </div>
         </div>
       </div>
@@ -217,17 +281,6 @@ export default function Results() {
         </div>
       </div>
 
-      <div className="card">
-        <h2>Exports</h2>
-        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
-          <button type="button" className="btn-primary" onClick={() => claimId && downloadPdf(claimId, `claimsense_${claimId}.pdf`)}>
-            Download PDF
-          </button>
-          <button type="button" className="btn-ghost" onClick={exportJson}>
-            Export JSON
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

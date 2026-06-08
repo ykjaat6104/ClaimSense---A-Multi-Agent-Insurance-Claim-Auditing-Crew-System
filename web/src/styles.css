@@ -375,6 +375,136 @@ table.data tbody td:last-child {
   opacity: 0.9;
 }
 
+/* —— Queue summary count —— */
+.queue-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.req-warn {
+  color: var(--yellow);
+}
+.req-ok {
+  color: var(--green);
+}
+
+/* —— Order badge —— */
+.order-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 204, 0, 0.15);
+  color: var(--yellow);
+  border: 1px solid rgba(255, 204, 0, 0.25);
+}
+.order-badge.extra-badge {
+  background: rgba(33, 150, 243, 0.15);
+  color: var(--blue);
+  border-color: rgba(33, 150, 243, 0.25);
+}
+
+/* —— Row filled state —— */
+.queue-row.row-filled {
+  border-left: 3px solid var(--green);
+  padding-left: 0.6rem;
+  background: rgba(76, 175, 80, 0.03);
+  border-radius: 0 4px 4px 0;
+}
+
+/* —— Required asterisk —— */
+.req-dot {
+  color: var(--red);
+  margin-left: 0.15rem;
+  font-weight: 700;
+}
+
+/* —— Mismatch badge (filename didn't match slot) —— */
+.mismatch-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 0.6rem;
+  font-weight: 700;
+  background: rgba(255, 152, 0, 0.15);
+  color: var(--orange);
+  border: 1px solid rgba(255, 152, 0, 0.35);
+  cursor: help;
+}
+
+/* —— Small action buttons (Results list exports) —— */
+.export-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: nowrap;
+}
+.btn-sm {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: var(--yellow);
+  color: #0d0d0d;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: filter 0.1s;
+}
+.btn-sm:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.btn-sm:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-sm-ghost {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.btn-sm-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+.btn-sm-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* —— File list tags (extra & evidence) —— */
+.file-list {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.file-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem 0.15rem 0.65rem;
+}
+.file-tag .queue-cancel {
+  font-size: 0.85rem;
+  padding: 0;
+  line-height: 1;
+}
+
 /* —— Upload (Image 2 layout, Image 1 colors) —— */
 .upload-layout {
   display: grid;
@@ -639,4 +769,165 @@ table.data tbody td:last-child {
 .placeholder-page ul {
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+/* —— Claim tabs (ingestion) —— */
+.claim-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+}
+
+.claim-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+  position: relative;
+}
+.claim-tab:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+.claim-tab.active {
+  background: var(--panel);
+  color: var(--yellow);
+  border-color: var(--border);
+  box-shadow: 0 -2px 0 var(--yellow);
+}
+.claim-tab.tab-filled {
+  color: var(--text);
+}
+
+.tab-indicator {
+  display: inline-flex;
+  align-items: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.tab-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.tab-filled .tab-dot {
+  background: var(--green);
+}
+
+.required-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 204, 0, 0.15);
+  color: var(--yellow);
+  border: 1px solid rgba(255, 204, 0, 0.25);
+  margin-left: 0.2rem;
+}
+
+.tab-content {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0 var(--radius) var(--radius) var(--radius);
+  padding: 1.15rem 1.25rem;
+  margin-bottom: 0.75rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+.tab-content.drag {
+  border-color: var(--yellow);
+  background: rgba(255, 204, 0, 0.04);
+}
+
+.tab-dropzone {
+  text-align: center;
+  padding: 1.25rem 0.75rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.15);
+  transition: border-color 0.12s;
+}
+.tab-dropzone:hover {
+  border-color: var(--yellow-dim);
+}
+
+.upload-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-top: 0.5rem;
+}
+.summary-dots {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.summary-dot {
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+}
+.summary-dot.dot-filled {
+  color: var(--green);
+  border-color: rgba(76, 175, 80, 0.35);
+  background: rgba(76, 175, 80, 0.08);
+}
+.summary-dot.dot-required {
+  border-style: dashed;
+}
+.summary-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--yellow);
+}
+
+/* —— Charts grid —— */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 800px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.chart-box {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+}
+.chart-label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
 }

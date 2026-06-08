@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     
     # ============ Models & Processing ============
     gemini_model: str = "gemini-2.0-flash"
-    gemini_embedding_model: str = "models/text-embedding-004"
+    gemini_embedding_model: str = "models/gemini-embedding-002"
     
     # ============ File Paths ============
     upload_dir: Path = Path("./uploads")

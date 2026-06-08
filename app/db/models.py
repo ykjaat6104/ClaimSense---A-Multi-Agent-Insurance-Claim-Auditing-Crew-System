@@ -21,6 +21,7 @@ class Claim(Base):
     policy_file_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     past_claims_csv_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     evidence_file_paths: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    other_file_paths: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     raw_texts: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     structured_claim: Mapped[dict | None] = mapped_column(JSON, nullable=True)
@@ -105,6 +106,7 @@ def claim_to_public_dict(c: Claim) -> dict[str, Any]:
         "structured_policy": c.structured_policy,
         "past_claims_meta": c.past_claims_meta,
         "evidence_file_paths": c.evidence_file_paths,
+        "other_file_paths": c.other_file_paths,
         "rag_chunks": c.rag_chunks,
         "rag_method_used": c.rag_method_used,
         "clause_relationships": c.clause_relationships,

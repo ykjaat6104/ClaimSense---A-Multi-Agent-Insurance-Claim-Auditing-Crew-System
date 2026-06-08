@@ -87,12 +87,24 @@ export function uploadClaimWithProgress(
   });
 }
 
+export async function downloadDocx(claimId: string, filename: string) {
+  const r = await apiFetch(`/api/claims/${claimId}/docx`);
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function uploadClaim(files: {
   claim: File;
   invoice: File;
   policy: File;
   pastClaims?: File | null;
   evidence?: File[];
+  otherDocs?: File[];
 }) {
   const fd = new FormData();
   fd.append("claim", files.claim);
@@ -101,6 +113,9 @@ export async function uploadClaim(files: {
   if (files.pastClaims) fd.append("past_claims", files.pastClaims);
   (files.evidence || []).slice(0, 5).forEach((f, i) => {
     fd.append(`evidence_${i + 1}`, f);
+  });
+  (files.otherDocs || []).slice(0, 5).forEach((f, i) => {
+    fd.append(`other_${i + 1}`, f);
   });
   const r = await fetch("/api/upload-claim", { method: "POST", headers: headers(), body: fd });
   if (!r.ok) {

@@ -33,9 +33,9 @@ class TavilySearchClient:
             return []
         
         try:
-            from tavily import Client
+            from tavily import TavilyClient
             
-            client = Client(api_key=self.api_key)
+            client = TavilyClient(api_key=self.api_key)
             response = client.search(query, max_results=max_results)
             
             results = []

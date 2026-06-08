@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Reports from "./pages/Reports";
 import Results from "./pages/Results";
+import ResultsList from "./pages/ResultsList";
 
 function RequireAuth({ children }: { children: ReactElement }) {
   const loc = useLocation();
@@ -29,8 +30,9 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="claims-mgmt" element={<ClaimsMgmt />} />
-        <Route path="reports" element={<Reports />} />
+        <Route path="results" element={<ResultsList />} />
         <Route path="results/:claimId" element={<Results />} />
+        <Route path="reports" element={<Reports />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

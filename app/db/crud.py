@@ -21,6 +21,7 @@ def create_claim(
     policy_path: str | None,
     past_claims_csv_path: str | None = None,
     evidence_file_paths: list[str] | None = None,
+    other_file_paths: list[str] | None = None,
 ) -> Claim:
     c = Claim(
         id=claim_id or uuid.uuid4(),
@@ -30,6 +31,7 @@ def create_claim(
         policy_file_path=policy_path,
         past_claims_csv_path=past_claims_csv_path,
         evidence_file_paths=evidence_file_paths,
+        other_file_paths=other_file_paths,
         processing_logs=[],
     )
     db.add(c)

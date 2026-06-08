@@ -1,0 +1,15 @@
+AUTO INSURANCE CLAIM FORM
+Claim ID: CLM-AUTO-2026-002
+Policy Number: POL-AUTO-2026
+Named Insured: Sarah Chen
+
+Incident Date: 2026-03-10
+Location: I-35 Southbound, Mile Marker 238, San Antonio, TX
+Description: Single-vehicle collision. Driver swerved to avoid debris, lost control and struck guardrail. Front bumper, passenger side door, and side mirror damaged. Airbags deployed.
+Damage Type: Collision — front bumper reinforcement, passenger door panel, side mirror assembly, airbag module replacement.
+Police Report: TX-DPS-2026-0310 filed at scene.
+
+Claimed Amount: $12,000.00
+Coverage Requested: Collision
+
+Documents Attached: Repair estimate from certified body shop, police report, photos.
