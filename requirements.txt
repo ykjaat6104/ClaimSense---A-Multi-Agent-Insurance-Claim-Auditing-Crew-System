@@ -1,4 +1,4 @@
-fastapi==0.115.6
+fastapi==0.136.3
 uvicorn[standard]==0.34.0
 python-multipart==0.0.20
 sqlalchemy==2.0.36
@@ -8,7 +8,7 @@ pydantic-settings==2.6.1
 google-generativeai==0.8.3
 langchain-core==0.3.28
 langchain-community==0.3.6
-langgraph==0.2.59
+langgraph==1.2.4
 pymupdf==1.25.2
 pytesseract==0.3.13
 Pillow==11.0.0
@@ -54,9 +54,9 @@ pylint==3.0.3
 pre-commit==3.6.0
 
 # Machine Learning & Fraud Detection
-scikit-learn==1.4.1
+scikit-learn==1.4.1.post1
 xgboost==2.0.3
-lightgbm==4.1.1
+lightgbm==4.1.0
 numpy==1.24.3
 pandas==2.1.4
 scipy==1.12.0
