@@ -50,7 +50,9 @@ services:
     restart: unless-stopped
 
   frontend:
-    build: ./web
+    build:
+      context: .
+      dockerfile: web/Dockerfile
     depends_on:
       - backend
     ports:
