@@ -60,13 +60,6 @@ flowchart TB
   MIG --> PG
 ```
 
-The agent layer is designed as a crew of specialized roles that review the same claim from different angles:
-
-- **Policy Analyst**: extracts policy coverage details from policy text and retrieved clauses.
-- **Data Miner**: analyzes customer history, payment status, and prior-claim patterns.
-- **Fraud Auditor**: looks for suspicious patterns, market mismatches, and anomaly signals.
-- **Judge**: synthesizes all evidence and emits the final decision-support outcome.
-
 ### 🎓 Policy Analyst (The Scholar)
 - **Job**: Extract policy coverage details, exclusions, limits, deductibles, and clause relationships.
 - **Tools**: Hybrid RAG (graph-aware: knowledge graph + vector + BM25 as primary; simple vector as fallback).
