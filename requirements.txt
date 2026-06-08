@@ -21,7 +21,7 @@ alembic==1.14.0
 celery==5.3.6
 redis==5.0.1
 requests==2.31.0
-instructor==1.2.0
+instructor==1.5.0
 tavily-python==0.3.4
 duckduckgo-search==3.9.10
 
