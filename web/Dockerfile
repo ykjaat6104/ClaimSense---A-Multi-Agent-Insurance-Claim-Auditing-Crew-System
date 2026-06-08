@@ -46,4 +46,4 @@ EOF
 
 EXPOSE 80
 
-CMD ["sh", "-c", "sed -i 's|__BACKEND_URL__|'\"${BACKEND_URL}\"'|g' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["sh", "-c", "URL=\"${BACKEND_URL}\"; echo \"$URL\" | grep -q '^http' || URL=\"https://$URL\"; sed -i \"s|__BACKEND_URL__|$URL|g\" /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;\""]
