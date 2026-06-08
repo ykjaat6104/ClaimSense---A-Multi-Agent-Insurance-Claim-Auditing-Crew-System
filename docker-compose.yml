@@ -1,0 +1,68 @@
+services:
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: .
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=sqlite:///./data/claimsense.db
+      - UPLOAD_DIR=/app/data/uploads
+      - REPORTS_DIR=/app/data/reports
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CORS_ORIGINS=*
+    volumes:
+      - claimsense_data:/app/data
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+
+  celery_worker:
+    build: .
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=sqlite:///./data/claimsense.db
+      - UPLOAD_DIR=/app/data/uploads
+      - REPORTS_DIR=/app/data/reports
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CORS_ORIGINS=*
+    volumes:
+      - claimsense_data:/app/data
+    command: celery -A app.services.celery_tasks worker --loglevel=info --concurrency=1
+    restart: unless-stopped
+
+  frontend:
+    build: ./web
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    depends_on:
+      - frontend
+    command: tunnel --url http://frontend:80
+    restart: unless-stopped
+
+volumes:
+  claimsense_data:

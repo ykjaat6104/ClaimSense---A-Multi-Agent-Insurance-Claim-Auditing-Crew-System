@@ -426,12 +426,70 @@ pytest tests/unit/test_fraud_detection.py
 - Production deployments should use a strong `CLAIMSENSE_AUTH_SECRET` and a secure `DATABASE_URL`.
 - Gemini-backed reasoning is assistive, not authoritative.
 
-## 📦 Deployment Notes
+## 🚀 One-click Deploy (GitHub Codespaces + Cloudflare Tunnel)
 
-- The app is Docker-friendly through the provided `Dockerfile`.
-- The backend can boot its required directories at startup.
-- Database migrations are supported through Alembic.
-- In production, prefer an external PostgreSQL instance and a proper secret management strategy.
+Deploy a full Celery + Redis stack with a public URL — free, no credit card needed, no local machine required.
+
+### Quick start
+
+```bash
+# 1. Open the repo in GitHub Codespaces
+#    (GitHub → Code → Codespaces → Create codespace)
+
+# 2. Set API keys
+cp .env.example .env
+# Edit .env: set GEMINI_API_KEY and TAVILY_API_KEY
+
+# 3. Launch the whole stack
+docker compose up -d
+
+# 4. Get the public URL
+docker compose logs tunnel | grep -o 'https://[a-z0-9]*\.trycloudflare\.com'
+# → https://abc123.trycloudflare.com   ← share this with anyone
+```
+
+### Architecture
+
+```
+User ──► https://*.trycloudflare.com
+                    │
+           cloudflared tunnel
+                    │
+          Nginx (frontend :80)
+           │        │
+        static    /api/* ──► FastAPI (backend :8000)
+        SPA                          │
+                                     ├── Redis (Celery broker)
+                                     └── SQLite (persisted in Docker volume)
+```
+
+### What you get
+
+| Service | What it does |
+|---|---|
+| `backend` | FastAPI + Uvicorn on port 8000 |
+| `celery_worker` | Celery worker processing claim audits in background |
+| `frontend` | Nginx serving the built React SPA, proxying APIs |
+| `redis` | In-memory queue broker for Celery |
+| `tunnel` | Cloudflare Tunnel → public `trycloudflare.com` URL |
+
+### Data persistence
+
+The `claimsense_data` Docker volume (mapped to `/app/data`) stores the SQLite database, uploads, and reports. It survives codespace restarts — just run `docker compose up -d` again to resume where you left off.
+
+### Stopping & resuming
+
+```bash
+docker compose down            # stop everything
+docker compose up -d           # start again — data intact
+docker compose down -v         # ⚠️ destroy data too
+```
+
+### Manual tunnel (without docker-compose)
+
+```bash
+docker run cloudflare/cloudflared tunnel --url http://localhost:80
+```
 
 ## 🤝 Contributing
 

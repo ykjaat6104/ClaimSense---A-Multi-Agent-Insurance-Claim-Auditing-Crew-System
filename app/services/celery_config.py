@@ -4,8 +4,9 @@ Enables non-blocking execution of the multi-agent workflow via task queue.
 """
 
 import logging
+import os
+
 from celery import Celery
-from celery.schedules import crontab
 from kombu import Exchange, Queue
 
 logger = logging.getLogger(__name__)
@@ -14,10 +15,13 @@ logger = logging.getLogger(__name__)
 
 app = Celery("claimsense")
 
-# Load configuration from environment or use defaults
+# Read from environment (set by docker-compose) with localhost fallback
+_default_broker = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
+_default_backend = os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+
 app.conf.update(
-    broker_url="redis://localhost:6379/0",
-    result_backend="redis://localhost:6379/0",
+    broker_url=_default_broker,
+    result_backend=_default_backend,
     
     # Task configuration
     task_serializer="json",

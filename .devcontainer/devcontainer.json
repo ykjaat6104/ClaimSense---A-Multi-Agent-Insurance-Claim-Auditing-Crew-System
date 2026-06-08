@@ -1,0 +1,24 @@
+{
+  "name": "ClaimSense",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-from-docker:1": {}
+  },
+  "postCreateCommand": "mkdir -p data && if [ ! -f .env ]; then cp .env.example .env && echo '.env created — edit with your API keys'; fi",
+  "forwardPorts": [80],
+  "portsAttributes": {
+    "80": {
+      "label": "ClaimSense",
+      "onAutoForward": "notify"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "dbaeumer.vscode-eslint",
+        "EditorConfig.EditorConfig"
+      ]
+    }
+  }
+}
