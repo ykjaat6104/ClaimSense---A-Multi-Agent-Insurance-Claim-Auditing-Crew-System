@@ -33,9 +33,9 @@ server {
     }
 
     location /health {
-        proxy_pass __BACKEND_URL__/health;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+        default_type application/json;
+        return 200 '{"status":"ok","service":"frontend"}';
+        add_header Content-Type application/json;
     }
 
     location / {
