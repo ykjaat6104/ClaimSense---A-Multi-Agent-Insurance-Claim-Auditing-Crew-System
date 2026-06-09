@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { clearToken } from "../api";
+import { useState } from "react";
 
 const nav: { to: string; label: string; end?: boolean; icon: string }[] = [
   { to: "/", label: "Dashboard", end: true, icon: "home" },
@@ -91,10 +92,24 @@ function Ticker() {
 
 export default function AppShell() {
   const goto = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  function closeMenu() {
+    setMenuOpen(false);
+  }
+
   return (
     <div className="app-root">
-      <aside className="sidebar">
-        <div className="sidebar-brand">ClaimSense</div>
+      {menuOpen && <div className="sidebar-overlay" onClick={closeMenu} />}
+      <aside className={"sidebar" + (menuOpen ? " open" : "")}>
+        <div className="sidebar-brand">
+          ClaimSense
+          <button type="button" className="sidebar-close" onClick={closeMenu} aria-label="Close menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
         <nav className="sidebar-nav">
           {nav.map((item) => (
             <NavLink
@@ -102,6 +117,7 @@ export default function AppShell() {
               to={item.to}
               end={item.end}
               className={({ isActive }) => "sidebar-link" + (isActive ? " active" : "")}
+              onClick={closeMenu}
             >
               <Icon name={item.icon} />
               {item.label}
@@ -112,7 +128,7 @@ export default function AppShell() {
           <button
             type="button"
             className="sidebar-profile-btn"
-            onClick={() => goto("/profile")}
+            onClick={() => { goto("/profile"); closeMenu(); }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="8" r="4" />
@@ -134,6 +150,16 @@ export default function AppShell() {
         </div>
       </aside>
       <div className="main-wrap">
+        <div className="topbar">
+          <button type="button" className="hamburger" onClick={() => setMenuOpen(true)} aria-label="Open menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <span className="topbar-brand">ClaimSense</span>
+        </div>
         <Ticker />
         <main className="main-inner">
           <Outlet />

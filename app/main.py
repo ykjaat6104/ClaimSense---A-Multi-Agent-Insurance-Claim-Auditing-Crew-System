@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 
 from app.api.router import api_router
 from app.config import get_settings
@@ -41,6 +41,18 @@ async def lifespan(app: FastAPI):
         engine = get_engine()
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables initialized")
+
+        # Migrate existing tables: add columns that were added after initial creation
+        inspector = inspect(engine)
+        existing_cols = {c["name"] for c in inspector.get_columns("users")}
+        with engine.connect() as conn:
+            if "display_name" not in existing_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN display_name VARCHAR(128)"))
+                logger.info("Added missing column: users.display_name")
+            if "avatar_path" not in existing_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN avatar_path TEXT"))
+                logger.info("Added missing column: users.avatar_path")
+            conn.commit()
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
         raise
