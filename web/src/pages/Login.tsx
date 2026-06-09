@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { apiLogin, getToken, setToken } from "../api";
 
 export default function Login() {
@@ -58,6 +58,9 @@ export default function Login() {
           </button>
           <p className="page-sub" style={{ marginTop: "1rem", fontSize: "0.82rem", marginBottom: 0 }}>
             Demo defaults match <code>.env.example</code> — rotate secrets in production.
+          </p>
+          <p className="page-sub" style={{ marginTop: "0.5rem", fontSize: "0.82rem", marginBottom: 0 }}>
+            Don't have an account? <Link to="/signup">Sign up</Link>
           </p>
         </form>
       </div>

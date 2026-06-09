@@ -26,6 +26,17 @@ class LoginResponse(BaseModel):
     username: str
 
 
+class SignupRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=64)
+    password: str = Field(..., min_length=6)
+
+
+class SignupResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    username: str
+
+
 class AdjusterActionRequest(BaseModel):
     """Human decision on top of AI recommendation (audit trail)."""
 

@@ -5,7 +5,7 @@ from pathlib import Path
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
-from app.db.models import Claim
+from app.db.models import Claim, User
 
 
 def get_claim(db: Session, claim_id: uuid.UUID) -> Claim | None:
@@ -81,6 +81,18 @@ def list_claims(db: Session, *, limit: int = 100, search: str | None = None) -> 
             except ValueError:
                 q = q.filter(False)  # type: ignore[arg-type]
     return q.limit(limit).all()
+
+
+def create_user(db: Session, *, username: str, hashed_password: str, is_demo: bool = False) -> User:
+    u = User(username=username, hashed_password=hashed_password, is_demo=is_demo)
+    db.add(u)
+    db.commit()
+    db.refresh(u)
+    return u
+
+
+def get_user_by_username(db: Session, username: str) -> User | None:
+    return db.query(User).filter(User.username == username).first()
 
 
 def set_adjuster_action(db: Session, claim: Claim, action: str) -> Claim:

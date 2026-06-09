@@ -19,6 +19,16 @@ function headers(): HeadersInit {
   return h;
 }
 
+export async function apiSignup(username: string, password: string) {
+  const r = await fetch("/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.detail || `Signup failed (${r.status})`);
+  return r.json() as Promise<{ access_token: string; username: string }>;
+}
+
 export async function apiLogin(username: string, password: string) {
   const r = await fetch("/api/auth/login", {
     method: "POST",

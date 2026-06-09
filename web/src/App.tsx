@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Reports from "./pages/Reports";
 import Results from "./pages/Results";
 import ResultsList from "./pages/ResultsList";
+import Signup from "./pages/Signup";
 
 function RequireAuth({ children }: { children: ReactElement }) {
   const loc = useLocation();
@@ -21,6 +22,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
       <Route
         element={
           <RequireAuth>
