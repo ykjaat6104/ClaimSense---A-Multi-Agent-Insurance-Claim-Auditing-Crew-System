@@ -5,8 +5,8 @@ import { apiLogin, getToken, setToken } from "../api";
 export default function Login() {
   const nav = useNavigate();
   const loc = useLocation() as { state?: { from?: string } };
-  const [user, setUser] = useState("adjuster");
-  const [pass, setPass] = useState("claimsense-demo");
+  const [user, setUser] = useState("");
+  const [pass, setPass] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -36,7 +36,7 @@ export default function Login() {
           ClaimSense
         </div>
         <p className="page-sub" style={{ marginBottom: "1rem" }}>
-          Adjuster workspace — sign in to run AI decision support on claims.
+          Welcome back — sign in to continue.
         </p>
         {err ? <div className="flash flash-err">{err}</div> : null}
         <form onSubmit={onSubmit}>
@@ -57,9 +57,6 @@ export default function Login() {
             {busy ? "Signing in…" : "Sign in"}
           </button>
           <p className="page-sub" style={{ marginTop: "1rem", fontSize: "0.82rem", marginBottom: 0 }}>
-            Demo defaults match <code>.env.example</code> — rotate secrets in production.
-          </p>
-          <p className="page-sub" style={{ marginTop: "0.5rem", fontSize: "0.82rem", marginBottom: 0 }}>
             Don't have an account? <Link to="/signup">Sign up</Link>
           </p>
         </form>

@@ -14,7 +14,7 @@ import Signup from "./pages/Signup";
 function RequireAuth({ children }: { children: ReactElement }) {
   const loc = useLocation();
   if (!getToken()) {
-    return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
+    return <Navigate to="/signup" replace state={{ from: loc.pathname }} />;
   }
   return children;
 }
