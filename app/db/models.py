@@ -15,6 +15,7 @@ class User(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(String(256), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     hashed_password: Mapped[str] = mapped_column(String(256), nullable=False)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)

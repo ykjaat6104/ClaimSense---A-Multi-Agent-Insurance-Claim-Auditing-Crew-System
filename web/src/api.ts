@@ -19,14 +19,14 @@ function headers(): HeadersInit {
   return h;
 }
 
-export async function apiSignup(username: string, password: string, display_name: string) {
+export async function apiSignup(username: string, password: string, display_name: string, email: string) {
   const r = await fetch("/api/auth/signup", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ username, password, display_name }),
+    body: JSON.stringify({ username, password, display_name, email }),
   });
   if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.detail || `Signup failed (${r.status})`);
-  return r.json() as Promise<{ access_token: string; username: string; display_name: string }>;
+  return r.json() as Promise<{ access_token: string; username: string; display_name: string; email: string }>;
 }
 
 export async function getProfile() {
@@ -36,6 +36,7 @@ export async function getProfile() {
     display_name: string | null;
     avatar_url: string | null;
     created_at: string;
+    email: string;
   }>;
 }
 

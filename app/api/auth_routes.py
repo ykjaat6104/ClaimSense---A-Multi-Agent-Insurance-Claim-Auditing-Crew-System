@@ -77,7 +77,7 @@ def signup(request: Request, body: SignupRequest, db: Session = Depends(get_db))
         )
 
     hashed = hash_password(body.password)
-    user = crud.create_user(db, username=body.username, hashed_password=hashed, display_name=body.display_name)
+    user = crud.create_user(db, username=body.username, hashed_password=hashed, email=body.email, display_name=body.display_name)
 
     token = create_access_token(
         subject=user.username,
@@ -87,7 +87,7 @@ def signup(request: Request, body: SignupRequest, db: Session = Depends(get_db))
     )
 
     logger.info(f"New user signed up: {body.username}")
-    return SignupResponse(access_token=token, username=user.username, display_name=user.display_name or user.username, token_type="bearer")
+    return SignupResponse(access_token=token, username=user.username, display_name=user.display_name or user.username, email=user.email, token_type="bearer")
 
 
 @router.get("/profile", response_model=ProfileResponse)
@@ -110,6 +110,7 @@ def get_profile(
         display_name=user.display_name,
         avatar_url=avatar_url,
         created_at=user.created_at.isoformat() if user.created_at else "",
+        email=user.email or "",
     )
 
 
@@ -136,6 +137,7 @@ def update_profile(
         display_name=user.display_name,
         avatar_url=avatar_url,
         created_at=user.created_at.isoformat() if user.created_at else "",
+        email=user.email or "",
     )
 
 

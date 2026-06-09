@@ -52,6 +52,9 @@ async def lifespan(app: FastAPI):
             if "avatar_path" not in existing_cols:
                 conn.execute(text("ALTER TABLE users ADD COLUMN avatar_path TEXT"))
                 logger.info("Added missing column: users.avatar_path")
+            if "email" not in existing_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(256)"))
+                logger.info("Added missing column: users.email")
             conn.commit()
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")

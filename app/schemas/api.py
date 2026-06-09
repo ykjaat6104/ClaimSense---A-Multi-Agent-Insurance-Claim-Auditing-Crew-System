@@ -1,6 +1,7 @@
+import re
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ClaimUploadResponse(BaseModel):
@@ -30,6 +31,14 @@ class SignupRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=64)
     password: str = Field(..., min_length=6)
     display_name: str = Field(..., min_length=1, max_length=128)
+    email: str = Field(..., max_length=256)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+            raise ValueError("Invalid email address")
+        return v.strip().lower()
 
 
 class SignupResponse(BaseModel):
@@ -37,6 +46,7 @@ class SignupResponse(BaseModel):
     token_type: str = "bearer"
     username: str
     display_name: str
+    email: str
 
 
 class ProfileResponse(BaseModel):
@@ -44,6 +54,7 @@ class ProfileResponse(BaseModel):
     display_name: str | None
     avatar_url: str | None
     created_at: str
+    email: str
 
 
 class UpdateProfileRequest(BaseModel):

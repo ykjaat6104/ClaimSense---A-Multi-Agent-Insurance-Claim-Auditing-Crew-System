@@ -83,8 +83,8 @@ def list_claims(db: Session, *, limit: int = 100, search: str | None = None) -> 
     return q.limit(limit).all()
 
 
-def create_user(db: Session, *, username: str, hashed_password: str, display_name: str | None = None, is_demo: bool = False) -> User:
-    u = User(username=username, hashed_password=hashed_password, display_name=display_name or username, is_demo=is_demo)
+def create_user(db: Session, *, username: str, hashed_password: str, email: str, display_name: str | None = None, is_demo: bool = False) -> User:
+    u = User(username=username, hashed_password=hashed_password, email=email, display_name=display_name or username, is_demo=is_demo)
     db.add(u)
     db.commit()
     db.refresh(u)

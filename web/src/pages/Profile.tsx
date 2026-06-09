@@ -4,6 +4,7 @@ import { getProfile, uploadAvatar, deleteAvatar } from "../api";
 export default function Profile() {
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [createdAt, setCreatedAt] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -16,6 +17,7 @@ export default function Profile() {
       .then((p) => {
         setUsername(p.username);
         setDisplayName(p.display_name || "");
+        setEmail(p.email || "");
         setAvatarUrl(p.avatar_url);
         setCreatedAt(p.created_at);
       })
@@ -57,6 +59,15 @@ export default function Profile() {
     } catch (ex: unknown) {
       setErr(ex instanceof Error ? ex.message : "Failed to remove avatar");
     }
+  }
+
+  function obfuscateEmail(mail: string): string {
+    if (!mail) return "";
+    const parts = mail.split("@");
+    if (parts.length !== 2) return mail;
+    const [local, domain] = parts;
+    const visible = local.length <= 3 ? local.charAt(0) : local.slice(0, 3);
+    return `${visible}***@${domain}`;
   }
 
   function formatDate(iso: string) {
@@ -112,6 +123,15 @@ export default function Profile() {
 
           <div className="profile-divider" />
 
+          {email ? (
+            <div className="profile-meta" style={{ marginBottom: "0.65rem" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="m22 7-10 6L2 7" />
+              </svg>
+              <span>{obfuscateEmail(email)}</span>
+            </div>
+          ) : null}
           <div className="profile-meta">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />

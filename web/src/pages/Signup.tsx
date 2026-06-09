@@ -6,6 +6,7 @@ export default function Signup() {
   const nav = useNavigate();
   const [user, setUser] = useState("");
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [confirm, setConfirm] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -35,10 +36,14 @@ export default function Signup() {
       setErr("Display name is required");
       return;
     }
+    if (!email.trim() || !email.includes("@")) {
+      setErr("Valid email is required");
+      return;
+    }
 
     setBusy(true);
     try {
-      const res = await apiSignup(user, pass, name.trim());
+      const res = await apiSignup(user, pass, name.trim(), email.trim());
       setToken(res.access_token);
       nav("/", { replace: true });
     } catch (ex: unknown) {
@@ -66,6 +71,10 @@ export default function Signup() {
           <label>
             <span>Display Name</span>
             <input value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label>
+            <span>Email</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
           </label>
           <label>
             <span>Password</span>
