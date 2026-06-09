@@ -4,15 +4,17 @@ services:
     runtime: python
     plan: free
     region: oregon
-    rootDir: backend        # 👈 1. Added this to isolate backend from the web frontend
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt # 👈 2. Fixed path & forced pip upgrade
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # 1. Added 'rootDir' pointing to app since requirements.txt and your code are inside it
+    rootDir: app
+    # 2. Render shifts into /app, so it can see requirements.txt and main.py directly
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
-      - key: PYTHON_VERSION # 👈 3. Added this to force Python 3.10 and fix scikit-learn
-        value: 3.10.14
-      - key: PYTHONPATH    # 👈 4. Added to ensure local Python app imports work perfectly
-        value: .
+      - key: PYTHON_VERSION
+        value: 3.10.14       # 3. Forces Python 3.10 to bypass the scikit-learn build failure
+      - key: PYTHONPATH
+        value: .             # 4. Ensures local app modules import correctly within the subfolder
       - key: ENVIRONMENT
         value: production
       - key: DATABASE_URL
@@ -20,7 +22,7 @@ services:
           name: claimsense-db
           property: connectionString
       - key: CORS_ORIGINS
-        value: https://claimsense.vercel.app
+        value: https://vercel.app
       - key: JWT_ALGORITHM
         value: HS256
       - key: JWT_EXPIRATION_HOURS
@@ -34,11 +36,11 @@ services:
       - key: LOG_LEVEL
         value: INFO
       - key: CLAIMSENSE_AUTH_SECRET
-        sync: false
+        sync: false          
       - key: CLAIMSENSE_DEMO_PASSWORD
-        sync: false
+        sync: false          
       - key: GEMINI_API_KEY
-        sync: false
+        sync: false          
 
 databases:
   - name: claimsense-db
