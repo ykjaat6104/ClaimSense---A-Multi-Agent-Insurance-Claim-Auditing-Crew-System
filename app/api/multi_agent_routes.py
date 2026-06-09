@@ -143,8 +143,8 @@ def _trigger_celery_audit(claim_id: str, db: Session) -> str:
         logger.info(f"[API] Queued multi-agent audit for claim {claim_id}. Task ID: {task.id}")
         return task.id
         
-    except ImportError:
-        logger.warning("[API] Celery not available, falling back to background task")
+    except Exception:
+        logger.warning("[API] Celery/Redis not available, using sync fallback")
         return None
 
 

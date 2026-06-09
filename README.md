@@ -211,12 +211,13 @@ For the full technical deep dive on agents, fraud detection, and architecture, s
 ### 🚢 Deployment and Operations Stack
 
 | Component | Technology | Purpose |
-|---|---|---|
-| Containerization | Docker / Railway | Containerized runtime packaging |
+|---|---|---|---|
+| Containerization | Docker | Containerized runtime packaging |
 | Configuration | Environment variables | Environment-specific configuration |
 | Observability | Health endpoint | Service and database readiness checks |
 | Local Dev | `.env` + Vite proxy | Fast local workflow with backend proxying |
-| Deployment | Railway | Multi-service cloud deployment |
+| Backend Deployment | Render (free tier) | Python web service + PostgreSQL |
+| Frontend Deployment | Vercel (free tier) | Static site + API rewrites |
 
 ### ✅ Quality and Testing Stack
 
@@ -249,7 +250,7 @@ ClaimSense/
 ├── samples/             # Example claim and policy documents
 ├── tests/               # Unit, integration, and e2e test scaffolding
 ├── requirements.txt     # Python dependencies
-├── railway.json          # Railway project configuration
+├── render.yaml           # Render Blueprint configuration
 ├── LICENSE              # MIT License
 └── README.md            # You are here
 ```
@@ -427,83 +428,86 @@ pytest tests/unit/test_fraud_detection.py
 - Production deployments should use a strong `CLAIMSENSE_AUTH_SECRET` and a secure `DATABASE_URL`.
 - Gemini-backed reasoning is assistive, not authoritative.
 
-## 🚀 Deploy on Railway (Free Tier)
+## 🚀 Deploy on Render (Backend) + Vercel (Frontend) — Free Tier
 
-Deploy the full stack (backend + Celery worker + frontend + Redis) on Railway's free tier — no credit card required at signup.
+Deploy ClaimSense for free on Render (backend + PostgreSQL) and Vercel (frontend). No credit card required at signup.
 
 ### Prerequisites
 
-- A [Railway](https://railway.app/) account (sign in with GitHub)
+- A [Render](https://render.com/) account (sign in with GitHub)
+- A [Vercel](https://vercel.com/) account (sign in with GitHub)
 - Your repo pushed to GitHub
 - A [Gemini API key](https://aistudio.google.com/app/apikey)
 
 ### Step-by-step
 
-#### 1. Create a Railway project
+#### 1. Deploy the backend on Render
 
-1. Go to [Railway dashboard](https://railway.app/dashboard) → **New Project** → **Deploy from GitHub**
-2. Select your ClaimSense repo
-3. Railway will detect the `railway.json` config
+1. Go to [Render dashboard](https://dashboard.render.com/) → **New** → **Blueprint**
+2. Connect your GitHub repo
+3. Render will auto-detect `render.yaml` and create:
+   - A **Web Service** (`claimsense-backend`) — Python FastAPI app
+   - A **PostgreSQL database** (`claimsense-db`) — free 1GB tier
+4. After creation, go to the web service **Environment** tab and set these **secret** env vars:
 
-#### 2. Add 3 services from the same repo
+   | Variable | Value |
+   |----------|-------|
+   | `CLAIMSENSE_AUTH_SECRET` | Generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+   | `CLAIMSENSE_DEMO_PASSWORD` | Choose a strong demo password |
+   | `GEMINI_API_KEY` | Your Gemini API key |
 
-In your Railway project dashboard, add these services:
+5. After setting the secrets, Render will automatically redeploy
 
-| Service | Root Directory | Dockerfile | Start Command |
-|---------|---------------|------------|---------------|
-| **backend** | `/` | `Dockerfile` | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
-| **celery_worker** | `/` | `Dockerfile` | `celery -A app.services.celery_tasks worker --loglevel=info` |
-| **frontend** | `web` | `web/Dockerfile` | *(default nginx CMD)* |
+#### 2. Deploy the frontend on Vercel
 
-**How to add services:**
-- Click **New** → **Add a Service** → select the same GitHub repo
-- Set the **Root Directory** field (e.g. `web` for frontend)
-- Set **Start Command** for each service
+1. Go to [Vercel dashboard](https://vercel.com/dashboard) → **Add New** → **Project**
+2. Import your GitHub repo
+3. Configure the project:
+   - **Root Directory**: `web`
+   - **Framework Preset**: Vite (auto-detected)
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+4. Click **Deploy**
 
-#### 3. Add the Redis plugin
+#### 3. Connect frontend to backend
 
-- Click **New** → **Plugin** → **Redis**
-- Railway auto-injects `REDIS_URL` as an env var
+1. After both deploy, copy your Render backend URL (e.g. `https://claimsense-backend.onrender.com`)
+2. Update `web/vercel.json` in your repo to point to your Render URL:
 
-#### 4. Set environment variables
+   ```json
+   {
+     "rewrites": [
+       { "source": "/api/(.*)", "destination": "https://YOUR_RENDER_URL.onrender.com/api/$1" },
+       { "source": "/(.*)", "destination": "/index.html" }
+     ]
+   }
+   ```
 
-Go to each service's **Variables** tab and add:
+3. Update the `CORS_ORIGINS` env var on Render to include your Vercel frontend URL (e.g. `https://claimsense.vercel.app`)
+4. Push the changes — Vercel will auto-redeploy
 
-| Variable | Value | Required |
-|----------|-------|----------|
-| `ENVIRONMENT` | `production` | ✅ |
-| `DATABASE_URL` | `sqlite:///./claimsense.db` (or Railway PostgreSQL) | ✅ |
-| `GEMINI_API_KEY` | `your-gemini-api-key` | ✅ |
-| `CLAIMSENSE_AUTH_SECRET` | `python -c "import secrets; print(secrets.token_urlsafe(32))"` | ✅ |
-| `CLAIMSENSE_DEMO_PASSWORD` | `choose-a-strong-password` | ✅ |
-| `CELERY_BROKER_URL` | `${{ REDIS_URL }}` | ✅ |
-| `CELERY_RESULT_BACKEND` | `${{ REDIS_URL }}` | ✅ |
-| `CORS_ORIGINS` | `https://frontend-*.up.railway.app` | ✅ |
-| `BACKEND_URL` (frontend service only) | `${{ backend.RAILWAY_PUBLIC_DOMAIN }}` | ✅ |
-
-Railway supports template variables — use `${{ REDIS_URL }}` to reference the Redis plugin's URL, and `${{ backend.RAILWAY_PUBLIC_DOMAIN }}` for the backend's public URL in the `BACKEND_URL` var on the frontend service.
-
-### Architecture on Railway
+### Architecture on Render + Vercel
 
 ```
-User ──► https://frontend-xxxx.up.railway.app
+User ──► https://claimsense.vercel.app
                     │
-            Nginx (frontend — BACKEND_URL env var)
+           Vercel static SPA
            │            │
-        static      /api/* ──► https://backend-xxxx.up.railway.app (private network)
+        static      /api/* ──► https://claimsense-backend.onrender.com/api/*
         SPA                              │
-                                          ├── Redis (Celery broker)
-                                          └── SQLite / PostgreSQL
+                                          ├── Async processing (inline fallback — no Celery)
+                                          └── PostgreSQL (Render managed)
 ```
 
-The frontend nginx proxies `/api/*` and `/health` requests to the backend using the `BACKEND_URL` environment variable. Set it in the frontend service as `${{ backend.RAILWAY_PUBLIC_DOMAIN }}` — Railway injects the backend's public URL automatically.
+The frontend runs as a static SPA on Vercel. API requests under `/api/*` are rewritten to the Render backend URL via `vercel.json`. Celery is not used on free tier — claim processing runs synchronously via `BackgroundTasks` with automatic fallback.
 
 ### Important notes
 
-- **Persistent storage**: SQLite files are ephemeral on Railway. For production, add the **PostgreSQL plugin** and set `DATABASE_URL` to the Railway Postgres connection string.
-- **Free tier limits**: Railway free plan includes $5-10 credit/month — sufficient for low-traffic demo use. Each service costs ~$0.00023/hour.
-- **Logs**: View logs per service in the Railway dashboard under **Deployments** → **View Logs**.
-- **Custom domains**: Upgrade to add a custom domain later.
+- **Sleep policy**: Render free web services spin down after 15 minutes of inactivity. The first request after idle takes ~30 seconds to wake up. This is normal.
+- **PostgreSQL persistence**: Render PostgreSQL free tier provides 1GB storage and persists data across restarts.
+- **No Celery**: Render free tier cannot run background workers. The app automatically detects when Celery/Redis is unavailable and processes claims synchronously.
+- **Logs**: View backend logs in Render dashboard under your web service → **Logs**.
+- **Custom domains**: Both Render and Vercel support custom domains on free tier.
 
 ## 🤝 Contributing
 
