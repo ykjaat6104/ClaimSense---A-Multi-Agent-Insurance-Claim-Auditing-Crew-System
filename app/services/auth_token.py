@@ -2,24 +2,32 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import jwt
-from passlib.context import CryptContext
 
 logger = logging.getLogger(__name__)
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+HASH_ALGORITHM = "sha256"
+HASH_ITERATIONS = 600_000
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    salt = secrets.token_hex(16)
+    pwd_hash = hashlib.pbkdf2_hmac(HASH_ALGORITHM, password.encode(), salt.encode(), HASH_ITERATIONS)
+    return f"{salt}${pwd_hash.hex()}"
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        salt, pwd_hash = hashed_password.split("$", 1)
+        return hashlib.pbkdf2_hmac(HASH_ALGORITHM, plain_password.encode(), salt.encode(), HASH_ITERATIONS).hex() == pwd_hash
+    except (ValueError, AttributeError):
+        return False
 
 
 def create_access_token(
