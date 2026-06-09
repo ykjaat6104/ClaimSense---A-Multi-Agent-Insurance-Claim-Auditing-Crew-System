@@ -29,12 +29,25 @@ class LoginResponse(BaseModel):
 class SignupRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=64)
     password: str = Field(..., min_length=6)
+    display_name: str = Field(..., min_length=1, max_length=128)
 
 
 class SignupResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     username: str
+    display_name: str
+
+
+class ProfileResponse(BaseModel):
+    username: str
+    display_name: str | None
+    avatar_url: str | None
+    created_at: str
+
+
+class UpdateProfileRequest(BaseModel):
+    display_name: str = Field(..., min_length=1, max_length=128)
 
 
 class AdjusterActionRequest(BaseModel):

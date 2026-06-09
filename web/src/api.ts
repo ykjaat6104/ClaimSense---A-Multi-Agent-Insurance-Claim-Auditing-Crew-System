@@ -19,14 +19,50 @@ function headers(): HeadersInit {
   return h;
 }
 
-export async function apiSignup(username: string, password: string) {
+export async function apiSignup(username: string, password: string, display_name: string) {
   const r = await fetch("/api/auth/signup", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, display_name }),
   });
   if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.detail || `Signup failed (${r.status})`);
-  return r.json() as Promise<{ access_token: string; username: string }>;
+  return r.json() as Promise<{ access_token: string; username: string; display_name: string }>;
+}
+
+export async function getProfile() {
+  const r = await apiFetch("/api/auth/profile");
+  return r.json() as Promise<{
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+    created_at: string;
+  }>;
+}
+
+export async function updateProfile(display_name: string) {
+  const r = await apiFetch("/api/auth/profile", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ display_name }),
+  });
+  return r.json() as Promise<{
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+    created_at: string;
+  }>;
+}
+
+export async function uploadAvatar(file: File) {
+  const fd = new FormData();
+  fd.append("file", file);
+  const r = await apiFetch("/api/auth/profile/avatar", { method: "POST", body: fd });
+  return r.json() as Promise<{ avatar_url: string }>;
+}
+
+export async function deleteAvatar() {
+  const r = await apiFetch("/api/auth/profile/avatar", { method: "DELETE" });
+  return r.json() as Promise<{ avatar_url: null }>;
 }
 
 export async function apiLogin(username: string, password: string) {

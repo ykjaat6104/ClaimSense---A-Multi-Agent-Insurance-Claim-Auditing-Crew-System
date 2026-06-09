@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -29,6 +30,7 @@ async def lifespan(app: FastAPI):
     # Create required directories
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
     settings.reports_dir.mkdir(parents=True, exist_ok=True)
+    (settings.upload_dir / "avatars").mkdir(parents=True, exist_ok=True)
     
     logger.info(f"Starting ClaimSense (environment: {settings.environment})")
     logger.info(f"Upload directory: {settings.upload_dir}")
@@ -86,6 +88,11 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(api_router)
+
+# Serve uploaded avatars
+_avatars_dir = settings.upload_dir / "avatars"
+if _avatars_dir.exists():
+    app.mount("/avatars", StaticFiles(directory=str(_avatars_dir)), name="avatars")
 
 
 @app.get("/health")

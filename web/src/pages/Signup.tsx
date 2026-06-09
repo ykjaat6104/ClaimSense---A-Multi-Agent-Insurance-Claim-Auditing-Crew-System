@@ -5,6 +5,7 @@ import { apiSignup, getToken, setToken } from "../api";
 export default function Signup() {
   const nav = useNavigate();
   const [user, setUser] = useState("");
+  const [name, setName] = useState("");
   const [pass, setPass] = useState("");
   const [confirm, setConfirm] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -30,10 +31,14 @@ export default function Signup() {
       setErr("Username must be at least 3 characters");
       return;
     }
+    if (!name.trim()) {
+      setErr("Display name is required");
+      return;
+    }
 
     setBusy(true);
     try {
-      const res = await apiSignup(user, pass);
+      const res = await apiSignup(user, pass, name.trim());
       setToken(res.access_token);
       nav("/", { replace: true });
     } catch (ex: unknown) {
@@ -57,6 +62,10 @@ export default function Signup() {
           <label>
             <span>Username</span>
             <input value={user} onChange={(e) => setUser(e.target.value)} autoComplete="username" />
+          </label>
+          <label>
+            <span>Display Name</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} />
           </label>
           <label>
             <span>Password</span>

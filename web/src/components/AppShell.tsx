@@ -6,6 +6,7 @@ const nav: { to: string; label: string; end?: boolean; icon: string }[] = [
   { to: "/claims-mgmt", label: "Claims Mgmt.", icon: "doc" },
   { to: "/results", label: "Results", icon: "chart" },
   { to: "/reports", label: "Reports", icon: "report" },
+  { to: "/profile", label: "Profile", icon: "user" },
 ];
 
 function Icon({ name }: { name: string }) {

@@ -6,6 +6,7 @@ import ClaimsMgmt from "./pages/ClaimsMgmt";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Reports from "./pages/Reports";
+import Profile from "./pages/Profile";
 import Results from "./pages/Results";
 import ResultsList from "./pages/ResultsList";
 import Signup from "./pages/Signup";
@@ -35,6 +36,7 @@ export default function App() {
         <Route path="results" element={<ResultsList />} />
         <Route path="results/:claimId" element={<Results />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -83,8 +83,8 @@ def list_claims(db: Session, *, limit: int = 100, search: str | None = None) -> 
     return q.limit(limit).all()
 
 
-def create_user(db: Session, *, username: str, hashed_password: str, is_demo: bool = False) -> User:
-    u = User(username=username, hashed_password=hashed_password, is_demo=is_demo)
+def create_user(db: Session, *, username: str, hashed_password: str, display_name: str | None = None, is_demo: bool = False) -> User:
+    u = User(username=username, hashed_password=hashed_password, display_name=display_name or username, is_demo=is_demo)
     db.add(u)
     db.commit()
     db.refresh(u)
@@ -93,6 +93,23 @@ def create_user(db: Session, *, username: str, hashed_password: str, is_demo: bo
 
 def get_user_by_username(db: Session, username: str) -> User | None:
     return db.query(User).filter(User.username == username).first()
+
+
+def update_user(db: Session, user: User, *, display_name: str | None = None) -> User:
+    if display_name is not None:
+        user.display_name = display_name
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def update_user_avatar(db: Session, user: User, avatar_path: str) -> User:
+    user.avatar_path = avatar_path
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 def set_adjuster_action(db: Session, claim: Claim, action: str) -> Claim:
