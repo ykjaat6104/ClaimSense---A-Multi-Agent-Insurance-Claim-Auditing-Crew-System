@@ -14,7 +14,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.10.14       # 3. Forces Python 3.10 to bypass the scikit-learn build failure
       - key: PYTHONPATH
-        value: .             # 4. Ensures local app modules import correctly within the subfolder
+        value: ..           # 4. Ensures local app modules import correctly within the subfolder
       - key: ENVIRONMENT
         value: production
       - key: DATABASE_URL
