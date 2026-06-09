@@ -2,7 +2,7 @@ services:
   - type: web
     name: claimsense-backend
     runtime: python
-    repo: https://github.com/obito84r/ClaimSense--AI-Insurance-Claim-Risk-Engine
+    repo: https://github.com/ykjaat6104/ClaimSense--AI-Insurance-Claim-Risk-Engine
     plan: free
     region: oregon
     buildCommand: pip install -r requirements.txt
