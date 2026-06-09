@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://claimsense-backend-unyr.onrender.com"
+      "destination": "https://claimsense-backend-unyr.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",
