@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { clearToken } from "../api";
 
 const nav: { to: string; label: string; end?: boolean; icon: string }[] = [
@@ -6,7 +6,6 @@ const nav: { to: string; label: string; end?: boolean; icon: string }[] = [
   { to: "/claims-mgmt", label: "Claims Mgmt.", icon: "doc" },
   { to: "/results", label: "Results", icon: "chart" },
   { to: "/reports", label: "Reports", icon: "report" },
-  { to: "/profile", label: "Profile", icon: "user" },
 ];
 
 function Icon({ name }: { name: string }) {
@@ -91,6 +90,7 @@ function Ticker() {
 }
 
 export default function AppShell() {
+  const goto = useNavigate();
   return (
     <div className="app-root">
       <aside className="sidebar">
@@ -109,6 +109,17 @@ export default function AppShell() {
           ))}
         </nav>
         <div className="sidebar-footer">
+          <button
+            type="button"
+            className="sidebar-profile-btn"
+            onClick={() => goto("/profile")}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+            </svg>
+            Profile
+          </button>
           <button
             type="button"
             className="btn-ghost"
